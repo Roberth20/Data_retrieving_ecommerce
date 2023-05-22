@@ -88,25 +88,63 @@ def get_att_map(lm, map_att):
     return lm[0], atributos
 
 def get_map(categoria, maps, atts_map, map_att, transformation):
-    """sdncaf"""
+    """Funcion para mapeo de atributos. 
+    
+    Para una dada categoria extrae los atributos de dicho producto que se encuentran en 
+    Multivende. El proceso es:
+    
+        1) Con la categoria del producto en Multivende se busca, segun el registro correspondiente,
+        y se obtiene el nombre de la misma dentro de cada Marketplace.
+        
+        2) Con la categoria oficial del marketplace, se obtienen los atributos explicitos para ese
+        producto dentro del marketplace.
+        
+        3) Se mapean los atributos del marketplace a los registrados en Multivende.
+        
+        4) Se realiza una traduccion del espannol al ingles de los atributos estandar que contiene
+        Multivende
+        
+    Inputs :
+    --------
+    
+    * categoria: str. Nombre de la categoria en Multivende.
+    
+    * maps: dict. Contiene las tablas de datos que mapean las categorias de Multivende a las de cada
+    marketplace.
+    
+    * atts_map: dict. Contiene todos los atributos para cada categoria dentro de un marketplace.
+    
+    * map_att: dict. Al igual que maps pero mapea los atributos.
+    
+    * transformation: pd.DataFrame. Tabla de datos con la traduccion de los atributos estandar de 
+    Multivende.
+    
+    """
+    # Creamos lista vacia de mapeo
     mcat = []
+    # Obtenemos el mapeo de la categoria para cada marketplace
     for c in maps.columns[1:5].values:
         info = maps[c][categoria == maps.iloc[:, 0]].values
         if len(info) >= 1:
             info = info[0]
         else:
             continue
+        # Dependiendo del marketplace, se prepara el paso por las funciones de filtro
         if "Paris" in c:
+            # En el caso de Paris, el mapeo no es por categoria, si no por familia
             info = maps[categoria == maps.iloc[:, 0]].iloc[:, -1].values
             if len(info) >= 1:
                 info = info[0]
+            # Limpiamos de expacios vacios (html)
             info = info.replace(u"\xa0", "")
             category = "PR", info
+            # Pasamos la informacion a las funciones
             lm = get_attributes(category, atts_map)
             atm = get_att_map(lm, map_att)
             latm = translate_standard(atm, transformation)
             mcat.append(latm)
         elif "Ripley" in c:
+            # Limpieza de la categoria y paso por los filtros
             words = info.split(" > ")
             words[-1] = words[-1].replace(u"\xa0", "")
             category = "RP", words[-1]
@@ -115,6 +153,7 @@ def get_map(categoria, maps, atts_map, map_att, transformation):
             latm = translate_standard(atm, transformation)
             mcat.append(latm)
         elif "Mercadolibre" in c:
+            # Limpieza de la categoria y paso por los filtros
             words = info.split(" - ")
             category = "MLC", words[-1]
             lm = get_attributes(category, atts_map)
@@ -122,6 +161,7 @@ def get_map(categoria, maps, atts_map, map_att, transformation):
             latm = translate_standard(atm, transformation)
             mcat.append(latm)
         else:
+            # Limpieza de la categoria y paso por los filtros
             words = info.split(" > ")
             words[-1] = words[-1].replace(u"\xa0", "")
             category = "FL", words[-1]
@@ -132,6 +172,10 @@ def get_map(categoria, maps, atts_map, map_att, transformation):
     return mcat
 
 def limpieza_de_atributo(atributo):
+    """Funcion para limpieza de un atributo. 
+    
+    Util para homogenizar los atributos con traducciones.
+    """
     if "-" in atributo:
         return atributo.split(" - ")[0]
     else:
