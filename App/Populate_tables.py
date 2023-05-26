@@ -1,7 +1,7 @@
 import mariadb
 import pandas as pd
-import DATA
 import sys
+import DATA
 
 # Connect to MariaDB Platform
 try:
@@ -82,6 +82,76 @@ def upload_data_ripley(df, cursor):
             cursor.execute(query, data = (data['label'], data["category"], data["requirement_level"],
                                          data["type"], data["type_parameters"], 
                                          data["variant"]))
+        except mariadb.Error as e:
+            print(f"Error: {e}")
+            sys.exit(0)
+            
+def upload_data_falabella2(df, cursor):
+    for i, row in df.iterrows():
+        try:
+            data = row.where(row.notna(), None)
+            query = """INSERT INTO Mapeo_Falabella(
+                Mapeo, Atributo) VALUES(
+                ?, ?)
+            """
+            cursor.execute(query, data = (data['Mapeo'], data["Atributo"]))
+        except mariadb.Error as e:
+            print(f"Error: {e}")
+            sys.exit(0)
+            
+def upload_data_MLC2(df, cursor):
+    for i, row in df.iterrows():
+        try:
+            data = row.where(row.notna(), None)
+            query = """INSERT INTO Mapeo_MercadoLibre(
+                Mapeo, Atributo) VALUES(
+                ?, ?)
+            """
+            cursor.execute(query, data = (data['Mapeo'], data["Atributo"]))
+        except mariadb.Error as e:
+            print(f"Error: {e}")
+            sys.exit(0)
+            
+def upload_data_Ripley2(df, cursor):
+    for i, row in df.iterrows():
+        try:
+            data = row.where(row.notna(), None)
+            query = """INSERT INTO Mapeo_Ripley(
+                Mapeo, Atributo) VALUES(
+                ?, ?)
+            """
+            cursor.execute(query, data = (data['Mapeo'], data["Atributo"]))
+        except mariadb.Error as e:
+            print(f"Error: {e}")
+            sys.exit(0)
+            
+def upload_data_Paris2(df, cursor):
+    for i, row in df.iterrows():
+        try:
+            data = row.where(row.notna(), None)
+            query = """INSERT INTO Mapeo_Paris(
+                Mapeo, Atributo) VALUES(
+                ?, ?)
+            """
+            cursor.execute(query, data = (data['Mapeo'], data["Atributo"]))
+        except mariadb.Error as e:
+            print(f"Error: {e}")
+            sys.exit(0)
+            
+def upload_cat_map(df, cursor):
+    for i, row in df.iterrows():
+        try:
+            query = """INSERT INTO Mapeo_Categorias(
+                Multivende, MercadoLibre, Falabella, Ripley,
+                Paris, Paris_Familia) VALUES(
+                ?, ?, ?, ?, ?, ?)
+            """
+            cursor.execute(query, data = (row["Categoria Multivende"], 
+                                          row["Categoria Mercadolibre"],
+                                         row["Categoria Falabella"],
+                                         row["Categoria Ripley "],
+                                         row["Categoria Paris"],
+                                         row["Paris Familia"]))
         except mariadb.Error as e:
             print(f"Error: {e}")
             sys.exit(0)
