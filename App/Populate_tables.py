@@ -1,7 +1,10 @@
-import mariadb
 import pandas as pd
 import sys
 import DATA
+import sqlalchemy
+import mariadb
+
+engine = sqlalchemy.create_engine(DATA.URI)
 
 # Connect to MariaDB Platform
 try:
@@ -17,7 +20,63 @@ try:
 except mariadb.Error as e:
     print(f"Error connecting to MariaDB Platform: {e}")
     sys.exit(0)
-    
+
+def upload_data_products(df, engine):
+    rename_columns = pd.DataFrame(columns = ["Viejo", "Nuevo"])
+    for c in df.columns:
+        if len(c) > 64:
+            if "netbook" in c:
+                rename_columns.loc[len(rename_columns), :] = [c, "Tamaño máximo de la notebook-Mercado Libre Productos (HB)"]
+                df.columns = df.columns.where(~df.columns.str.contains("netbook"), "Tamaño máximo de la notebook-Mercado Libre Productos (HB)")
+                continue
+            if "RESISTANCE_BAND" in c:
+                rename_columns.loc[len(rename_columns), :] = [c, "RESISTANCE_BAND_WITH_HANDLES-Mercado Libre Productos (HB)"]
+                df.columns = df.columns.where(~df.columns.str.contains("RESISTANCE_BAND"), "RESISTANCE_BAND_WITH_HANDLES-Mercado Libre Productos (HB)")
+                continue
+            if "vajilla" in c:
+                rename_columns.loc[len(rename_columns), :] = [c, "Material del escurridor de vajilla-Mercado Libre Productos (HB)"]
+                df.columns = df.columns.where(~df.columns.str.contains("vajilla"), "Material del escurridor de vajilla-Mercado Libre Productos (HB)")
+                continue
+            if len(c.split("-")) > 2:
+                rename_columns.loc[len(rename_columns), :] = [c, "-".join([c.split("-")[0], c.split("-")[2]])]
+                df.columns = df.columns.where(~df.columns.str.contains(c.split("-")[1]), "-".join([c.split("-")[0], c.split("-")[2]]))
+
+    with engine.connect() as connection:
+        result = connection.execute(sqlalchemy.text("SELECT * FROM Renombre_categorias LIMIT 1"))
+        if result.first() == None:
+            rename_columns.to_sql("Renombre_categorias", engine, if_exists = "append", index=False)
+            print(f"Tabla 'Renombre_categorias' populada con exito.")
+        else:
+            print(f"La tabla 'Renombre_categorias' no esta vacia. Intente con insert o append filas.")            
+
+
+    df.drop(df.columns[df.columns.str.contains("Material del trípode")][1], axis=1, inplace=True)
+    df.drop("Número de focos-Ripley Productos", axis=1, inplace=True)
+
+    std = df.columns[:21]
+    mlc = df.columns[df.columns.str.contains("Mercado Libre")]
+    fl = df.columns[df.columns.str.contains("Falabella")]
+    rp = df.columns[df.columns.str.contains("Ripley")]
+    pr = df.columns[df.columns.str.contains("Paris")]
+    sp = df.columns[df.columns.str.contains("Shopify")]
+
+    tables = {"standard":std, 
+              "MercadoLibre": mlc.to_list() + ["IDENTIFICADOR_HIJO","IDENTIFICADOR_PADRE"],
+              "Falabella": fl.to_list() + ["IDENTIFICADOR_HIJO","IDENTIFICADOR_PADRE"],
+              "Ripley":rp.to_list() + ["IDENTIFICADOR_HIJO","IDENTIFICADOR_PADRE"],
+              "Paris":pr.to_list() + ["IDENTIFICADOR_HIJO","IDENTIFICADOR_PADRE"],
+              "Shopify":sp.to_list() + ["IDENTIFICADOR_HIJO","IDENTIFICADOR_PADRE"]}
+
+    for table in tables:
+        with engine.connect() as connection:
+            result = connection.execute(sqlalchemy.text(f"SELECT * FROM Productos_{table} LIMIT 1"))
+            if result.first() == None:
+                df[tables[table]].to_sql(f"Productos_{table}", engine, if_exists = "append", index=False)
+                print(f"Tabla 'Productos_{table}' populada con exito.")
+            else:
+                print(f"La tabla 'Productos_standard' no esta vacia. Intente con insert o append filas.")
+
+
 def upload_data_falabella(df, cursor):
     for i, row in df.iterrows():
         try:

@@ -24,7 +24,7 @@ from hmac import HMAC
 import json
 
 # Creamos funcion de ayuda
-def get_response_falabella(parameters: dict): 
+def get_response_falabella(parameters: dict, API_KEY): 
     """Funcion de ayuda para contruir el endpoint de la API y para la generacion de la
     signature key.
     
@@ -36,7 +36,7 @@ def get_response_falabella(parameters: dict):
     --------
     * str : sting de formato json con la respuesta."""
     # api_key del usuario
-    api_key = "<API KEY>"
+    api_key = API_KEY
     concatenated = urllib.parse.urlencode(sorted(parameters.items()))
     # Creacion de la signature key
     parameters['Signature'] = HMAC(api_key.encode("utf-8"), msg=concatenated.encode("utf-8"), digestmod = sha256).hexdigest()
@@ -56,9 +56,9 @@ parameters = {
       'Timestamp': datetime.datetime.now().isoformat()}
 
 # Retorno de categorias si la signature es aprobada
-print("Conectando con la API.")
-categories = get_response_falabella(parameters).json()
-categories = categories["SuccessResponse"]["Body"]["Categories"]
+#print("Conectando con la API.")
+#categories = get_response_falabella(parameters).json()
+#categories = categories["SuccessResponse"]["Body"]["Categories"]
 
 def category_tree_falabella(categories: list, tree: list):
     """Funcion generadora del arbol de categorias.
@@ -86,33 +86,33 @@ def category_tree_falabella(categories: list, tree: list):
         category_tree_falabella(item["Children"]["Category"], tree)
 
 # Generamos arbol de categorias
-print("Obteniendo categorias...")
-tree = []
-category_tree_falabella(categories["Category"], tree)
+#print("Obteniendo categorias...")
+3#tree = []
+#category_tree_falabella(categories["Category"], tree)
 
 # Preparamos el objeto para almacenar los atributos
-attributes = []
-print("Generando atributos...")
-for d in tree:
+#attributes = []
+#print("Generando atributos...")
+#for d in tree:
     # En cada llamado a la API se debe cambiar el parametro 
     # de la categoria objetivo
-    parameters = {
-      'UserID': "ID DE USUARIO",
-      'Version': '1.0',
-      'Action': "GetCategoryAttributes",
-      'Format':'JSON',
-      'Timestamp': datetime.datetime.now().isoformat(),
-      'PrimaryCategory': d["Id"]}
-    response = get_response_falabella(parameters).json()
-    response = response["SuccessResponse"]["Body"]["Attribute"]
-    for item in response:
+ #   parameters = {
+  #    'UserID': "ID DE USUARIO",
+   #   'Version': '1.0',
+    #  'Action': "GetCategoryAttributes",
+     # 'Format':'JSON',
+      #'Timestamp': datetime.datetime.now().isoformat(),
+#      'PrimaryCategory': d["Id"]}
+ #   response = get_response_falabella(parameters).json()
+  #  response = response["SuccessResponse"]["Body"]["Attribute"]
+   # for item in response:
         # Guardamos el atributo, agregando a que categoria pertence
-        item["Category"] = d["Name"]
-        attributes.append(item)
+    #    item["Category"] = d["Name"]
+     #   attributes.append(item)
 
 # Creamos dataframe
-df = pd.DataFrame(attributes)
+#df = pd.DataFrame(attributes)
 # Limpiamos y guardamos en excel
-df.drop(["InputType", "ExampleValue", "MaxLength", "FeedName", "GlobalIdentifier", "Name"], axis=1, inplace=True)
-df.to_excel("atributos_falabella.xlsx", index = False)
-print("Proceso finalizado.")
+#df.drop(["InputType", "ExampleValue", "MaxLength", "FeedName", "GlobalIdentifier", "Name"], axis=1, inplace=True)
+#df.to_excel("atributos_falabella.xlsx", index = False)
+#print("Proceso finalizado.")

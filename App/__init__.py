@@ -1,5 +1,6 @@
 import os
 from flask import Flask
+from App.db import db
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
@@ -18,8 +19,16 @@ def create_app(test_config=None):
     except OSError:
         pass    
     
-    from . import db
+    from App.main import bp as main_page
+    app.register_blueprint(main_page)
     
-    db.init_db(app)
+    from App.download import download as download_page
+    app.register_blueprint(download_page, url_prefix="/download")
+    
+    db.init_app(app)
+    
+    @app.route('/test/')
+    def test_page():
+        return '<h1>Testing the Flask Application Factory Pattern</h1>'
 
     return app
