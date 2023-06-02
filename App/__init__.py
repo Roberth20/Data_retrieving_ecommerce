@@ -19,13 +19,13 @@ def create_app(test_config=None):
     except OSError:
         pass    
     
+    db.init_app(app)
+    
     from App.main import bp as main_page
     app.register_blueprint(main_page)
     
     from App.download import download as download_page
     app.register_blueprint(download_page, url_prefix="/download")
-    
-    db.init_app(app)
     
     @app.route('/test/')
     def test_page():
