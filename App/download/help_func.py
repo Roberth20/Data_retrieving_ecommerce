@@ -1,4 +1,5 @@
 import pandas as pd
+import textdistance
 
 """Modulo de asistencia para la logica de asignacion de colores de los atributos
 de un producto. Y funciones de utilidad para mapeo de categorias y atributos."""
@@ -77,13 +78,17 @@ def get_att_map(lm, map_att):
     for l in lm[1]:
         # Buscamos en la tabla correspondiente todas las coincidencias del mismo
         # en toda la columna de atributos del marketplace
-        mask = map_att[lm[0]].iloc[:, 1] == l
+        mask = map_att[lm[0]].iloc[:, 1].str.lower() == l.lower()
         # Obtenemos los atributos de multivende que se corresponden
-        items = map_att[lm[0]].iloc[:, 0][mask]
+        items = map_att[lm[0]][mask].copy()
         # GUardamos los atributos unicos
-        for a in items:
-            if a not in atributos:
-                atributos.append(a)
+        if items.shape[0] == 0:
+            continue
+        # GUardamos los atributos unicos
+        items["Score"] = [textdistance.jaccard.similarity(i.lower().split(" "), l.lower().split(" ")) for i in items.iloc[:, 0]]
+        item = items.sort_values("Score", ascending=False).iloc[0, 0]
+        if item not in atributos:
+            atributos.append(item)
 
     return lm[0], atributos
 
@@ -146,7 +151,6 @@ def missing_info(c, maps, atts, map_att, std_transformation):
             std = arr.index[:20]
             index = [idx for idx in arr.index if "HB" in idx]
             mask = []
-            #print(market[1])
             for l in market[1]:
                 for i in index:  
                     arr[i] = None
@@ -160,8 +164,6 @@ def missing_info(c, maps, atts, map_att, std_transformation):
                         mask.append(s)
                         break
             
-            #print(mask)
-            print("\n\n")
             for m in mask:
                 arr[m] = "background-color: #D7DF01"
 

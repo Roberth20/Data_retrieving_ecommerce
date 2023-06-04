@@ -27,6 +27,9 @@ def create_app(test_config=None):
     from App.download import download as download_page
     app.register_blueprint(download_page, url_prefix="/download")
     
+    from App.update import update as update_page
+    app.register_blueprint(update_page, url_prefix="/update")
+    
     @app.route('/test/')
     def test_page():
         return '<h1>Testing the Flask Application Factory Pattern</h1>'
