@@ -1,4 +1,4 @@
-from App.db import db
+from App.extensions.db import db
 
 class Atributos_Falabella(db.Model):
     __tablename__ = "Atributos_Falabella"

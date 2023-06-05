@@ -1,4 +1,4 @@
-from App.db import db
+from App.extensions.db import db
 import pandas as pd
 
 def get_products():

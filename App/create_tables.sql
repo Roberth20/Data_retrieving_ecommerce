@@ -536,3 +536,22 @@ CREATE TABLE IF NOT EXISTS Renombre_categorias(
     Viejo VARCHAR(120) NOT NULL PRIMARY KEY,
     Nuevo VARCHAR(64) NOT NULL
 );
+  
+CREATE TABLE IF NOT EXISTS Role(
+    name VARCHAR(64) PRIMARY KEY,
+    desciption TEXT 
+);    
+    
+CREATE TABLE IF NOT EXISTS Users(
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(120) NOT NULL UNIQUE,
+    password VARCHAR(30) NOT NULL,
+    active BOOL NOT NULL,
+    fs_uniquifier VARCHAR(64) UNIQUE NOT NULL,
+    username VARCHAR(64) UNIQUE NOT NULL,
+    role_name VARCHAR(64) NOT NULL,
+    CONSTRAINT 'Role_name' FOREIGN KEY(role_nam) REFERENCES Role(name)
+);
+    
+
+  

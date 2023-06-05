@@ -1,4 +1,4 @@
-from App.db import db
+from App.extensions.db import db
 
 class Mapeo_Paris(db.Model):
     __tablename__ = "Mapeo_Paris"

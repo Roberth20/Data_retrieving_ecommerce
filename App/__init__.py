@@ -1,10 +1,10 @@
 import os
 from flask import Flask
-from App.db import db
+from App.extensions.db import db
+from App.extensions.security import user_datastore, security
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
-    app.config.from_mapping(SECRET_KEY="dev")
     
     if test_config is None:
         # load the instance config, if it exists, when not testing
@@ -20,6 +20,7 @@ def create_app(test_config=None):
         pass    
     
     db.init_app(app)
+    security.init_app(app, user_datastore)
     
     from App.main import bp as main_page
     app.register_blueprint(main_page)
