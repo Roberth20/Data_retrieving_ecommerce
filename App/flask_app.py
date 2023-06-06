@@ -115,7 +115,7 @@ def refresh_token():
     **RECOMENDACION** Cambiar toda esta seccion por un proceso en segundo plano que actualice
     el token sin la necesidad de chequear si es tiempo de refrescar."""
     # Comprobacion de existencia
-    if ~session["refreshTime"]:
+    if "refreshTime" not in session.keys():
         app.logger.error("No hay refreshTime disponible")
         return "No hay refresh token disponible"
 
@@ -206,7 +206,7 @@ def retrive_data():
     att = response["customAttributes"]
     att_std = ["Season", "model", "description", "htmlDescription", "shortDescription",
                 "htmlShortDescription", "Warranty", "Brand", "name", "ProductCategory", "sku_name", "color",
-                "size", "sku", "internalSku", "width", "length", "height", "weight", "_id"]
+                "size", "sku", "internalSku", "width", "length", "height", "weight", "IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"]
 
     # Transformamos los nombres para mayor comodidad
     att_names = [item["name"]+"-"+item["CustomAttributeSet.name"] for item in att]
@@ -261,6 +261,7 @@ def retrive_data():
     for i in info:
         sku = i["code"]
         i["sku_name"] = sku
+        i["IDENTIFICADOR_PADRE"] = i["_id"]
         # Cuando el atributo no tiene valor, no posee informacion anidada
         # evitamos errores tomando este aspecto en consideracion
         try:
@@ -289,7 +290,7 @@ def retrive_data():
             j["length"] = pv["length"]
             j["weight"] = pv["weight"]
             j["width"] = pv["width"]
-            j["_id"] = pv["_id"]
+            j["IDENTIFICADOR_HIJO"] = pv["_id"]
             j.pop("ProductVersions")
             all_data.append(j)
 
@@ -342,11 +343,11 @@ def download_file():
     # Para equivalencia entre multivende y el marketplace, construimos tabla de traduccion
     # de atributos estandar
     std_transformation = pd.DataFrame({
-        "Original": df.columns[:20],
+        "Original": df.columns[:21],
         "Nuevo": ["Temporada", "Modelo", "Descripción", "Descripción html", "Descripción corta",
                   "Descripción corta html", "Garantía", "Marca", "Nombre", "Categoría de producto",
                  "Nombre Sku", "Color", "Tamaño", "SKU", "SKU interno", "Ancho", "Largo",
-                 "Alto", "Peso", "id"]
+                 "Alto", "Peso", "IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"]
     })
     std_transformation.loc[len(std_transformation), :] = ["size", "Talla"]
 
