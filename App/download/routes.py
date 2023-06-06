@@ -6,13 +6,16 @@ from App.models.mapeo_categorias import Mapeo_categorias
 from App.models.productos import get_products
 from App.models.atributos_market import * 
 from App.download.help_func import col_color, missing_info
+from flask_security import auth_required
 import io
 
 @download.get("/")
+@auth_required("basic")
 def index():
     return render_template("download/main.html")
 
 @download.get("/products")
+@auth_required("basic")
 def download_products():
     products = get_products()
     # Cargamos los mapeos
@@ -65,6 +68,7 @@ def download_products():
 
 ############################################################################################
 @download.get("/maps")
+@auth_required("basic")
 def download_maps():
     return  render_template("download/mapeo_atributos.html")
 
@@ -83,6 +87,7 @@ def download_paris():
     return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)
 
 @download.get("/maps/falabella")
+@auth_required("basic")
 def download_falabella():
     df = pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Falabella.query.all()], 
                       columns=["Mapeo", "Atributo"])
@@ -97,6 +102,7 @@ def download_falabella():
     return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)
 
 @download.get("/maps/mercadolibre")
+@auth_required("basic")
 def download_mercadolibre():
     df = pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_MercadoLibre.query.all()], 
                       columns=["Mapeo", "Atributo"])
@@ -111,6 +117,7 @@ def download_mercadolibre():
     return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)
 
 @download.get("/maps/ripley")
+@auth_required("basic")
 def download_ripley():
     df = pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Ripley.query.all()], 
                       columns=["Mapeo", "Atributo"])
@@ -127,6 +134,7 @@ def download_ripley():
     
 ###############################################################################################
 @download.get("/map_cat")
+@auth_required("basic")
 def download_map_cat():
     df = pd.DataFrame([[m.Multivende, m.MercadoLibre, m.Falabella,
                        m.Ripley, m.Paris, m.Paris_Familia] for m in Mapeo_categorias.query.all()], 

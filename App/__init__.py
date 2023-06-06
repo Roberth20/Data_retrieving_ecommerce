@@ -2,6 +2,7 @@ import os
 from flask import Flask
 from App.extensions.db import db
 from App.extensions.security import user_datastore, security
+from App.extensions.talisman import talisman
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
@@ -21,6 +22,7 @@ def create_app(test_config=None):
     
     db.init_app(app)
     security.init_app(app, user_datastore)
+    talisman.init_app(app, force_https=False)
     
     from App.main import bp as main_page
     app.register_blueprint(main_page)
@@ -30,6 +32,9 @@ def create_app(test_config=None):
     
     from App.update import update as update_page
     app.register_blueprint(update_page, url_prefix="/update")
+    
+    from App.auth import auth as auth_page
+    app.register_blueprint(auth_page, url_prefix="/auth")
     
     @app.route('/test/')
     def test_page():

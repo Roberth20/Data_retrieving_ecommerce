@@ -5,6 +5,7 @@ from App.models.mapeo_atributos import *
 from App.extensions.db import db
 from App.update.funcs import *
 from App.models.mapeo_categorias import Mapeo_categorias
+from flask_security import auth_required
 
 ALLOWED_EXTENSIONS = ["xlsx"]
 
@@ -13,10 +14,12 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @update.get("/")
+@auth_required("basic")
 def update_main():
     return render_template("update/main.html")
 
 @update.route("/paris", methods=["GET", "POST"])
+@auth_required("basic")
 def update_paris():
     if request.method == "POST":
         # check if the post request has the file part
@@ -41,6 +44,7 @@ def update_paris():
     return render_template("update/sample.html", market="Paris")
 
 @update.route("/falabella", methods=["GET", "POST"])
+@auth_required("basic")
 def update_falabella():
     if request.method == "POST":
         # check if the post request has the file part
@@ -65,6 +69,7 @@ def update_falabella():
     return render_template("update/sample.html", market="Falabella")
 
 @update.route("/mercadolibre", methods=["GET", "POST"])
+@auth_required("basic")
 def update_mercadolibre():
     if request.method == "POST":
         # check if the post request has the file part
@@ -89,6 +94,7 @@ def update_mercadolibre():
     return render_template("update/sample.html", market="Mercado Libre")
 
 @update.route("/ripley", methods=["GET", "POST"])
+@auth_required("basic")
 def update_ripley():
     if request.method == "POST":
         # check if the post request has the file part
@@ -113,6 +119,7 @@ def update_ripley():
     return render_template("update/sample.html", market="Ripley")
 
 @update.route("/map_cat", methods=["GET", "POST"])
+@auth_required("basic")
 def update_mapcat():
     if request.method == "POST":
         # check if the post request has the file part

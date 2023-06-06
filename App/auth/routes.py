@@ -1,6 +1,8 @@
 from App.auth import auth
-import DATA
+from flask_security import auth_required
+from flask import current_app
 
 @auth.get("/")
+@auth_required("basic")
 def main_auth():
-    return "<h1>Main page for authentication. Links to auth and refresh</h1>"
+    return f"testing: client_id : {current_app.config['CLIENT_ID']}"
