@@ -536,22 +536,50 @@ CREATE TABLE IF NOT EXISTS Renombre_categorias(
     Viejo VARCHAR(120) NOT NULL PRIMARY KEY,
     Nuevo VARCHAR(64) NOT NULL
 );
-  
-CREATE TABLE IF NOT EXISTS Role(
-    name VARCHAR(64) PRIMARY KEY,
-    desciption TEXT 
-);    
     
-CREATE TABLE IF NOT EXISTS Users(
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    email VARCHAR(120) NOT NULL UNIQUE,
-    password VARCHAR(30) NOT NULL,
-    active BOOL NOT NULL,
-    fs_uniquifier VARCHAR(64) UNIQUE NOT NULL,
-    username VARCHAR(64) UNIQUE NOT NULL,
-    role_name VARCHAR(64) NOT NULL,
-    CONSTRAINT 'Role_name' FOREIGN KEY(role_nam) REFERENCES Role(name)
-);
+CREATE TABLE IF NOT EXISTS `user` (
+  `fs_webauthn_user_handle` varchar(64) DEFAULT NULL,
+  `mf_recovery_codes` text DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL,
+  `us_phone_number` varchar(128) DEFAULT NULL,
+  `username` varchar(255) DEFAULT NULL,
+  `us_totp_secrets` text DEFAULT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `email` varchar(255) NOT NULL,
+  `active` tinyint(1) NOT NULL,
+  `fs_uniquifier` varchar(64) NOT NULL,
+  `confirmed_at` datetime DEFAULT NULL,
+  `last_login_at` datetime DEFAULT NULL,
+  `current_login_at` datetime DEFAULT NULL,
+  `last_login_ip` varchar(64) DEFAULT NULL,
+  `current_login_ip` varchar(64) DEFAULT NULL,
+  `login_count` int(11) DEFAULT NULL,
+  `tf_primary_method` varchar(64) DEFAULT NULL,
+  `tf_totp_secret` varchar(255) DEFAULT NULL,
+  `tf_phone_number` varchar(128) DEFAULT NULL,
+  `create_datetime` datetime NOT NULL DEFAULT current_timestamp(),
+  `update_datetime` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`),
+  UNIQUE KEY `fs_uniquifier` (`fs_uniquifier`),
+  UNIQUE KEY `fs_webauthn_user_handle` (`fs_webauthn_user_handle`),
+  UNIQUE KEY `us_phone_number` (`us_phone_number`),
+  UNIQUE KEY `username` (`username`)
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    
+CREATE TABLE IF NOT EXISTS `role` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(80) NOT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `permissions` text DEFAULT NULL,
+  `update_datetime` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    
     
 
-  
+CREATE TABLE IF NOT EXISTS auth(
+    token TEXT NOT NULL,
+    expire DATETIME NOT NULL
+);

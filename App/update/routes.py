@@ -6,6 +6,9 @@ from App.extensions.db import db
 from App.update.funcs import *
 from App.models.mapeo_categorias import Mapeo_categorias
 from flask_security import auth_required
+from App.models.auth import auth_app
+from App.auth.funcs import decrypt
+from flask import current_app
 
 ALLOWED_EXTENSIONS = ["xlsx"]
 
@@ -144,3 +147,18 @@ def update_mapcat():
             return render_template("update/success.html", market = "Mapeo categorias")
     
     return render_template("update/sample.html", market="Mapeo categorias")
+
+@update.get("/products")
+@auth_required("basic")
+def update_products():
+    url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/all-product-attributes"
+    last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
+    try:        
+        token = decrypt(, current_app.config["SECRET_KEY"])
+        headers = {
+            'Authorization': f'Bearer {token}'
+                }
+    except:
+        app.logger.info("No hay token disponible")
+        return render_template("error_token.html")
+    
