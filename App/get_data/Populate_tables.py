@@ -1,27 +1,26 @@
 import pandas as pd
-import sys
-import DATA
-import sqlalchemy
 import mariadb
+from flask import current_app
 
-engine = sqlalchemy.create_engine(DATA.URI)
+def get_cursor_db():
+    # Connect to MariaDB Platform
+    try:
+        conn = mariadb.connect(
+            user= current_app.config["USER_DB"],
+            password= current_app.config["PASSWORD_DB"],
+            port= current_app.config["PORT_DB"],
+            database= current_app.config["NAME_DB"]
 
-# Connect to MariaDB Platform
-try:
-    conn = mariadb.connect(
-        user= DATA.USER,
-        password= DATA.PASSWORD,
-        port= DATA.PORT,
-        database="multivende"
+        )
+        # Get Cursor
+        cur = conn.cursor()
+    except mariadb.Error as e:
+        print(f"Error connecting to MariaDB Platform: {e}")
+        sys.exit(0)
 
-    )
-    # Get Cursor
-    cur = conn.cursor()
-except mariadb.Error as e:
-    print(f"Error connecting to MariaDB Platform: {e}")
-    sys.exit(0)
-
-def upload_data_products(df, engine):
+def upload_data_products(df, db):
+    message = "<ul>"
+    engine = db.engine
     rename_columns = pd.DataFrame(columns = ["Viejo", "Nuevo"])
     for c in df.columns:
         if len(c) > 64:
@@ -42,12 +41,12 @@ def upload_data_products(df, engine):
                 df.columns = df.columns.where(~df.columns.str.contains(c.split("-")[1]), "-".join([c.split("-")[0], c.split("-")[2]]))
 
     with engine.connect() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT * FROM Renombre_categorias LIMIT 1"))
+        result = connection.execute(db.text("SELECT * FROM Renombre_categorias LIMIT 1"))
         if result.first() == None:
             rename_columns.to_sql("Renombre_categorias", engine, if_exists = "append", index=False)
-            print(f"Tabla 'Renombre_categorias' populada con exito.")
+            message += "<li>Tabla 'Renombre_categorias' actualizada con exito.</li>"
         else:
-            print(f"La tabla 'Renombre_categorias' no esta vacia. Intente con insert o append filas.")            
+            message += "<li>Hubo un error al actualizar 'Renombre_categorias'</li>"            
 
 
     df.drop(df.columns[df.columns.str.contains("Material del trípode")][1], axis=1, inplace=True)
@@ -69,12 +68,15 @@ def upload_data_products(df, engine):
 
     for table in tables:
         with engine.connect() as connection:
-            result = connection.execute(sqlalchemy.text(f"SELECT * FROM Productos_{table} LIMIT 1"))
+            result = connection.execute(db.text(f"SELECT * FROM Productos_{table} LIMIT 1"))
             if result.first() == None:
                 df[tables[table]].to_sql(f"Productos_{table}", engine, if_exists = "append", index=False)
-                print(f"Tabla 'Productos_{table}' populada con exito.")
+                message += "<li>Tabla 'Productos_{table}' populada con exito.</li>"
             else:
-                print(f"La tabla 'Productos_standard' no esta vacia. Intente con insert o append filas.")
+                message += "<li>La tabla 'Productos_standard' no esta vacia. Intente con insert o append filas.</li>"
+                
+    message += "</ul>"
+    return message
 
 
 def upload_data_falabella(df, cursor):
