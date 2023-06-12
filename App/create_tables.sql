@@ -577,9 +577,13 @@ CREATE TABLE IF NOT EXISTS `role` (
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
     
-    
-
 CREATE TABLE IF NOT EXISTS auth(
     token TEXT NOT NULL,
     expire DATETIME NOT NULL
+);
+    
+CREATE TABLE IF NOT EXISTS ids(
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    type VARCHAR(9) NOT NULL
 );

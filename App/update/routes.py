@@ -243,6 +243,11 @@ def update_products():
         # Extraemos la misma informacion para cada version de producto
         for pv in i["ProductVersions"]:
             j = i.copy()
+            tmp_dict = {}
+            for at in pv["CustomAttributeValues"]:
+                tmp_dict[at["CustomAttribute"]["name"]] =  at["text"]
+            pv.pop("CustomAttributeValues")
+            j = j | tmp_dict
             j["color"] = pv["Color"]["name"]
             j["size"] = pv["Size"]["name"]
             j["sku"] = pv["code"]
