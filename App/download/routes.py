@@ -40,13 +40,12 @@ def download_products():
     maps = pd.DataFrame([[m.Multivende, m.MercadoLibre, m.Falabella, m.Ripley, m.Paris, m.Paris_Familia] 
                         for m in Mapeo_categorias.query.all()], 
                         columns = ["Multivende", "MercadoLibre", "Falabella", "Ripley", "Paris", "Paris Familia"])
-    
     std_transformation = pd.DataFrame({
         "Original": products.columns[:20],
         "Nuevo": ["Temporada", "Modelo", "Descripción", "Descripción html", "Descripción corta",
                   "Descripción corta html", "Garantía", "Marca", "Nombre", "Categoría de producto",
                  "Nombre Sku", "Color", "Tamaño", "SKU", "SKU interno", "Ancho", "Largo",
-                 "Alto", "Peso", "id"]
+                 "Alto", "Peso", "tags"]
     })
     std_transformation.loc[len(std_transformation), :] = ["size", "Talla"]
     

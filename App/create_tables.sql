@@ -107,6 +107,7 @@ CREATE TABLE IF NOT EXISTS Productos_standard(
     length FLOAT NULL,
     height FLOAT NULL,
     weight FLOAT NULL,
+    tags VARCHAR(32) NULL,
     PRIMARY KEY(IDENTIFICADOR_PADRE, IDENTIFICADOR_HIJO)
 );
 
@@ -586,4 +587,15 @@ CREATE TABLE IF NOT EXISTS ids(
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
     type VARCHAR(9) NOT NULL
+);
+    
+CREATE TABLE IF NOT EXISTS customs_ids(
+    entry INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_set VARCHAR(36) NOT NULL,
+    name_set VARCHAR(36) NOT NULL,
+    id VARCHAR(36),
+    name VARCHAR(96),
+    option_id VARCHAR(36),
+    option_name VARCHAR(60),
+    scope CHAR(8) NOT NULL
 );

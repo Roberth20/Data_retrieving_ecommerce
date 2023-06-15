@@ -168,7 +168,7 @@ def update_products():
     att = response["customAttributes"]
     att_std = ["Season", "model", "description", "htmlDescription", "shortDescription",
                 "htmlShortDescription", "Warranty", "Brand", "name", "ProductCategory", "sku_name", "color",
-                "size", "sku", "internalSku", "width", "length", "height", "weight", "IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"]
+                "size", "sku", "internalSku", "width", "length", "height", "weight", "IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO", "tags"]
     # Transformamos los nombres para mayor comodidad
     att_names = [item["name"]+"-"+item["CustomAttributeSet.name"] for item in att]
     att_short_names = [item["name"] for item in att]
@@ -240,6 +240,11 @@ def update_products():
         except:
             war = None
         i["Warranty"] = war
+        try:
+            tag = i["ProductTags"][0]["Tag"]["name"]
+        except:
+            tag = None
+        i["tags"] = tag
         # Extraemos la misma informacion para cada version de producto
         for pv in i["ProductVersions"]:
             j = i.copy()
