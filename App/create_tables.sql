@@ -599,3 +599,11 @@ CREATE TABLE IF NOT EXISTS customs_ids(
     option_name VARCHAR(60),
     scope CHAR(8) NOT NULL
 );
+    
+CREATE TABLE IF NOT EXISTS clients(
+    id INT NOT NULL PRIMARY KEY,
+    Name VARCHAR(42) NOT NULL,
+    Mail VARCHAR(64) NULL,
+    Phone VARCHAR(12) NULL,
+    Items VARCHAR(255) NOT NULL
+)

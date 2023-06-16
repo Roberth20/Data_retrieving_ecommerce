@@ -5,6 +5,7 @@ from App.models.mapeo_atributos import *
 from App.models.mapeo_categorias import Mapeo_categorias
 from App.models.productos import get_products
 from App.models.atributos_market import * 
+from App.models.clients import clients
 from App.download.help_func import col_color, missing_info
 from flask_security import auth_required
 import io
@@ -145,6 +146,41 @@ def download_map_cat():
     
     headers = {
         'Content-Disposition': 'attachment; filename=Mapeo categorias.xlsx',
+        'Content-type': 'application/vnd.ms-excel'
+    }
+    return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)
+
+###################################################################################################
+@download.get("/customs_attributes")
+@auth_required("basic")
+def download_customs_attribute():
+    from App.models.ids import customs_ids
+    
+    customs_data = pd.DataFrame([[c.id_set, c.name_set, c.id, c.name, c.option_id,
+                                 c.option_name] for c in customs_ids.query.all()],
+                               columns = ["id_set", "name_set", "id", "name", "option_id",
+                                         "option_name"])
+    buffer = io.BytesIO()
+    customs_data.to_excel(buffer, index = False)
+    
+    headers = {
+        'Content-Disposition': 'attachment; filename=Atributos customs.xlsx',
+        'Content-type': 'application/vnd.ms-excel'
+    }
+    return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)
+
+#####################################################################################################
+@download.get("/clients")
+@auth_required("basic")
+def download_clients():
+    client_data = pd.DataFrame([[c.name, c.mail, c.phone, c.items] for c in clients.query.all()],
+                              columns = ["Nombre", "Correo", "Telefono", "Items"])
+
+    buffer = io.BytesIO()
+    client_data.to_excel(buffer, index = False)
+    
+    headers = {
+        'Content-Disposition': 'attachment; filename=clientes.xlsx',
         'Content-type': 'application/vnd.ms-excel'
     }
     return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)

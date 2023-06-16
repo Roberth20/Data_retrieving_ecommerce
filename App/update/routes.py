@@ -11,6 +11,8 @@ from App.auth.funcs import decrypt
 from flask import current_app
 from App.models.productos import get_products
 from App.get_data.Populate_tables import upload_data_products
+from datetime import datetime
+from App.models.clients import clients
 
 ALLOWED_EXTENSIONS = ["xlsx"]
 
@@ -303,3 +305,25 @@ def update_products():
     
     message = upload_data_products(df, db)
     return render_template("update/products_updated", message=message)
+
+@update.get("/clients")
+@auth_required("basic")
+def clients_data():
+    fl_customers = get_data_falabella(current_app.config["FALABELLA_USER"], current_app.config["FALABELLA_API_KEY"])
+    pr_customers = get_data_paris(current_app.config["PARIS_API_KEY"])
+    rp_customers = get_data_ripley(current_app.config["RIPLEY_API_KEY"])
+    
+    data = pd.concat([pr_customers, fl_customers, rp_customers], axis=0)
+    data.reset_index(drop=True, inplace=True)
+    for i, row in data.iterrows():
+        customer = clients(id = i, name=row["Name"], mail=row["Mail"], phone=row["Phone"], items=row["Items"])
+        c = db.session.get(clients, i)
+        if c == None:
+            db.session.add(customer)
+        elif c.name == customer.name:
+            continue
+        else:
+            c = customer
+    db.session.commit()
+    
+    return render_template("update/success_client.html")

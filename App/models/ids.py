@@ -15,5 +15,4 @@ class customs_ids(db.Model):
     name = db.Column(db.String(96))
     option_id = db.Column(db.String(36))
     option_name = db.Column(db.String(60))
-    scope = db.Column(db.String(8), nullable=False)
     

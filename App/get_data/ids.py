@@ -22,14 +22,11 @@ brand["type"] = "brand"
 color = pd.DataFrame(data["colors"]["entries"])
 color = color[["_id", "name"]]
 color["type"] = "color"
-atributos = pd.DataFrame(data["atributos"])
-atributos = atributos[["_id", "name"]]
-atributos["type"] = "attribute"
 categories = pd.DataFrame(data["categories"])
 categories = categories[["_id", "name"]]
 categories["type"] = "category"
 
-ids_concat = pd.concat([size, brand, color, atributos, categories]).reset_index(drop=True)
+ids_concat = pd.concat([size, brand, color, categories]).reset_index(drop=True)
 
 with open("App/excel_de_respaldo/warranties.json") as f:
     data = json.load(f)

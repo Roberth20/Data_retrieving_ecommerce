@@ -36,8 +36,6 @@ def create_app(test_config=None):
     from App.auth import auth as auth_page
     app.register_blueprint(auth_page, url_prefix="/auth")
     
-    @app.route('/test/')
-    def test_page():
-        return '<h1>Testing the Flask Application Factory Pattern</h1>'
-
+    from App.create_update import cupdate
+    app.register_blueprint(cupdate, url_prefix="/create_update")
     return app
