@@ -170,7 +170,7 @@ def update_products():
     att = response["customAttributes"]
     att_std = ["Season", "model", "description", "htmlDescription", "shortDescription",
                 "htmlShortDescription", "Warranty", "Brand", "name", "ProductCategory", "sku_name", "color",
-                "size", "sku", "internalSku", "width", "length", "height", "weight", "IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO", "tags"]
+                "size", "sku", "internalSku", "width", "length", "height", "weight", "IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO", "tags", "picture"]
     # Transformamos los nombres para mayor comodidad
     att_names = [item["name"]+"-"+item["CustomAttributeSet.name"] for item in att]
     att_short_names = [item["name"] for item in att]
@@ -194,7 +194,7 @@ def update_products():
     app.logger.info("Solicitando atributos de productos.")
     data = []
     for i in ids:
-        url = f"https://app.multivende.com/api/products/{i}?_include_product_picture=false"
+        url = f"https://app.multivende.com/api/products/{i}?_include_product_picture=true"
         response = requests.request("GET", url, headers=headers).json()
         data.append(response)
 
@@ -247,6 +247,11 @@ def update_products():
         except:
             tag = None
         i["tags"] = tag
+        try:
+            picture = i["ProductPictures"][0]["url"]
+        except:
+            picture = None
+        i["picture url"] = picture
         # Extraemos la misma informacion para cada version de producto
         for pv in i["ProductVersions"]:
             j = i.copy()
