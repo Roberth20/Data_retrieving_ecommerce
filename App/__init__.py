@@ -15,7 +15,7 @@ def create_app(test_config=False):
         app.config.from_prefixed_env()
         if 'RDS_DB_NAME' in os.environ:
             app.config['SQLALCHEMY_DATABASE_URI'] = \
-                'mariadb+pymysql://{username}:{password}@{host}:{port}/{database}'.format(
+                'mysql://{username}:{password}@{host}:{port}/{database}'.format(
                 username=os.environ['RDS_USERNAME'],
                 password=os.environ['RDS_PASSWORD'],
                 host=os.environ['RDS_HOSTNAME'],
