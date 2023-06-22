@@ -9,7 +9,7 @@ def get_cursor_db():
             user= current_app.config["USER_DB"],
             password= current_app.config["PASSWORD_DB"],
             port= current_app.config["PORT_DB"],
-            database= current_app.config["NAME_DB"]
+            database= current_app.config["NAME_DB"],
             host=current_app.config["HOST_DB"]
         )
         # Get Cursor
