@@ -8,3 +8,4 @@ pandas==1.5.3
 Requests==2.31.0
 textdistance==4.5.0
 tqdm==4.65.0
+PyMySQL==1.0.3
