@@ -142,8 +142,8 @@ def update_mapcat():
             df = pd.read_excel(file)
             db_cat = pd.DataFrame([[m.id, m.Multivende, m.MercadoLibre, m.Falabella,
                        m.Ripley, m.Paris, m.Paris_Familia] for m in Mapeo_categorias.query.all()], 
-                      columns=["Id","Multivende", "MercadoLibre", "Falabella", "Ripley",
-                              "Paris", "Paris_Familia"])
+                      columns=["Id","Categoria Multivende", "Categoria MercadoLibre", "Categoria Falabella", "Categoria Ripley",
+                              "Categoria Paris", "Paris Familia"])
             if ~df.columns.isin(db_cat.columns).all():
                 return render_template("update/error.html")
             
