@@ -13,7 +13,7 @@ from App.models.productos import get_products
 from App.get_data.Populate_tables import upload_data_products
 from datetime import datetime
 from App.models.clients import clients
-from App.models.ids import ids, custom_ids
+from App.models.ids import ids, customs_ids
 
 ALLOWED_EXTENSIONS = ["xlsx"]
 
@@ -350,7 +350,7 @@ def update_ids():
             df = pd.read_excel(file)
             for i, row in df.iterrows():
                 new_ids = ids(id=row["_id"], name=row["name"], type=row["type"])
-                db.session.add(c_ids)
+                db.session.add(new_ids)
             
             db.session.commit()
             
@@ -375,7 +375,7 @@ def update_custom_ids():
             for i, row in df.iterrows():
                 c_ids = customs_ids(id_set = row["id_set"], name_set = row["name_set"], id = row["id"],
                                    name = row["name"], option_name = row["option_name"], option_id = row["option_id"])
-                 db.session.add(c_ids)
+                db.session.add(c_ids)
             
             db.session.commit()
             
