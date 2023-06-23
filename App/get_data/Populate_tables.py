@@ -1,22 +1,21 @@
 import pandas as pd
-import mariadb
 from flask import current_app
 
-def get_cursor_db():
+#def get_cursor_db():
     # Connect to MariaDB Platform
-    try:
-        conn = mariadb.connect(
-            user= current_app.config["USER_DB"],
-            password= current_app.config["PASSWORD_DB"],
-            port= current_app.config["PORT_DB"],
-            database= current_app.config["NAME_DB"],
-            host=current_app.config["HOST_DB"]
-        )
+ #   try:
+  #      conn = mariadb.connect(
+   #         user= current_app.config["USER_DB"],
+    #        password= current_app.config["PASSWORD_DB"],
+     #       port= current_app.config["PORT_DB"],
+      #      database= current_app.config["NAME_DB"],
+       #     host=current_app.config["HOST_DB"]
+        #)
         # Get Cursor
-        cur = conn.cursor()
-    except mariadb.Error as e:
-        print(f"Error connecting to MariaDB Platform: {e}")
-        sys.exit(0)
+        #cur = conn.cursor()
+    #except mariadb.Error as e:
+     #   print(f"Error connecting to MariaDB Platform: {e}")
+      #  sys.exit(0)
 
 def upload_data_products(df, db):
     message = "<ul>"
