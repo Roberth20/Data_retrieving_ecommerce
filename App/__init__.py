@@ -21,6 +21,7 @@ def create_app(test_config=False):
                 port=os.environ['RDS_PORT'],
                 database=os.environ['RDS_DB_NAME'],
             )
+        app.config["SECURITY_PASSWORD_SALT"] = str(app.config["SECURITY_PASSWORD_SALT"])
     # ensure the instance folder exists
     try:
         os.makedirs(app.instance_path)
