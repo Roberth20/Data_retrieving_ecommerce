@@ -22,6 +22,7 @@ def create_app(test_config=False):
                 port=os.environ['RDS_PORT'],
                 database=os.environ['RDS_DB_NAME'],
             )
+        print(app.config['SQLALCHEMY_DATABASE_URI'])
         
     # ensure the instance folder exists
     try:
