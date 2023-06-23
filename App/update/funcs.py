@@ -23,15 +23,15 @@ def check_differences_and_upload_cats(df, db_cat, db, model):
         if row.isna().any():
             ID = db_cat[db_cat.index == i].iloc[0, 0]
             mapeo = db.session.get(model, ID)
-            if row[row.notna()].index[0] == "Multivende":
+            if row[row.notna()].index[0] == 'Categoria Multivende':
                 mapeo.Multivende = row[row.notna()][0]
-            elif row[row.notna()].index[0] == "MercadoLibre":
+            elif row[row.notna()].index[0] == 'Categoria Mercadolibre':
                 mapeo.MercadoLibre = row[row.notna()][0]
-            elif row[row.notna()].index[0] == "Falabella":
+            elif row[row.notna()].index[0] == 'Categoria Falabella':
                 mapeo.Falabella = row[row.notna()][0]
-            elif row[row.notna()].index[0] == "Ripley":
+            elif row[row.notna()].index[0] == 'Categoria Ripley ':
                 mapeo.Ripley = row[row.notna()][0]
-            elif row[row.notna()].index[0] == "Paris":
+            elif row[row.notna()].index[0] == 'Categoria Paris':
                 mapeo.Paris = row[row.notna()][0]
             else:
                 mapeo.Paris_Familia = row[row.notna()][0]
