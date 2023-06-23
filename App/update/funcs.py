@@ -37,12 +37,12 @@ def check_differences_and_upload_cats(df, db_cat, db, model):
                 mapeo.Paris_Familia = row[row.notna()][0]
             db.session.commit()
         else:
-            mapeo = model(Multivende=row.Multivende, 
-                        MercadoLibre=row.MercadoLibre,
-                        Falabella=row.Falabella,
-                        Ripley = row.Ripley,
-                        Paris = row.Paris,
-                        Paris_Familia = row.Paris_Familia)
+            mapeo = model(Multivende=row['Categoria Multivende'], 
+                        MercadoLibre=row['Categoria Mercadolibre'],
+                        Falabella=row['Categoria Falabella'],
+                        Ripley = row['Categoria Ripley '],
+                        Paris = row['Categoria Paris'],
+                        Paris_Familia = row['Paris Familia'])
             db.session.add(mapeo)
             db.session.commit()
             

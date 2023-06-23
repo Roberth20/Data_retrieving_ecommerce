@@ -158,6 +158,8 @@ def update_mapcat():
 def update_products():
     url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/all-product-attributes"
     last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
+    if last_auth == None:
+        return render_template("update/token_error.html")
     diff = datetime.utcnow() - last_auth.expire
     if diff.total_seconds()/3600 > 6:
         return render_template("update/token_error.html")
