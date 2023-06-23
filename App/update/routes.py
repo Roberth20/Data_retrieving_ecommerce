@@ -374,6 +374,7 @@ def update_custom_ids():
             return redirect(request.url)
         if file and allowed_file(file.filename):
             df = pd.read_excel(file)
+            df = df.where(df.notna(), None)
             for i, row in df.iterrows():
                 c_ids = customs_ids(id_set = row["id_set"], name_set = row["name_set"], id = row["id"],
                                    name = row["name"], option_name = row["option_name"], option_id = row["option_id"])
