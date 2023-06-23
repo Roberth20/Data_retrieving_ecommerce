@@ -13,15 +13,15 @@ def create_app(test_config=False):
     else:
         # load the test config if passed in
         app.config.from_prefixed_env()
-        #if 'RDS_DB_NAME' in os.environ:
-         #   app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://{username}:{password}@{host}:{port}/{database}'.format(
-          #      username=os.environ['RDS_USERNAME'],
-           #     password=os.environ['RDS_PASSWORD'],
-            #    host=os.environ['RDS_HOSTNAME'],
-             #   port=os.environ['RDS_PORT'],
-              #  database=os.environ['RDS_DB_NAME'],
-            #)
-        #print(app.config["SQLALCHEMY_DATABASE_URI"])
+        if 'RDS_DB_NAME' in os.environ:
+            app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://{username}:{password}@{host}:{port}/{database}'.format(
+                username=os.environ['RDS_USERNAME'],
+                password=os.environ['RDS_PASSWORD'],
+                host=os.environ['RDS_HOSTNAME'],
+                port=os.environ['RDS_PORT'],
+                database=os.environ['RDS_DB_NAME'],
+            )
+        print(app.config["SQLALCHEMY_DATABASE_URI"])
     # ensure the instance folder exists
     try:
         os.makedirs(app.instance_path)

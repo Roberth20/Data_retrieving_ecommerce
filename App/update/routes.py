@@ -13,6 +13,7 @@ from App.models.productos import get_products
 from App.get_data.Populate_tables import upload_data_products
 from datetime import datetime
 from App.models.clients import clients
+from App.models.ids import ids, custom_ids
 
 ALLOWED_EXTENSIONS = ["xlsx"]
 
@@ -332,3 +333,52 @@ def clients_data():
     db.session.commit()
     
     return render_template("update/success_client.html")
+
+@update.route("/ids", methods=["GET", "POST"])
+@auth_required("basic")
+def update_ids():
+    if request.method == "POST":
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            return redirect(request.url)
+        file = request.files['file']
+        # If the user does not select a file, the browser submits an
+        # empty file without a filename.
+        if file.filename == '':
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            df = pd.read_excel(file)
+            for i, row in df.iterrows():
+                new_ids = ids(id=row["_id"], name=row["name"], type=row["type"])
+                db.session.add(c_ids)
+            
+            db.session.commit()
+            
+            return render_template("update/success.html", market = "Ids")
+    
+    return render_template("update/sample.html", market="Ids")
+
+@update.route("/custom_ids", methods=["GET", "POST"])
+@auth_required("basic")
+def update_custom_ids():
+    if request.method == "POST":
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            return redirect(request.url)
+        file = request.files['file']
+        # If the user does not select a file, the browser submits an
+        # empty file without a filename.
+        if file.filename == '':
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            df = pd.read_excel(file)
+            for i, row in df.iterrows():
+                c_ids = customs_ids(id_set = row["id_set"], name_set = row["name_set"], id = row["id"],
+                                   name = row["name"], option_name = row["option_name"], option_id = row["option_id"])
+                 db.session.add(c_ids)
+            
+            db.session.commit()
+            
+            return render_template("update/success.html", market = "custom Ids")
+    
+    return render_template("update/sample.html", market="custom Ids")
