@@ -138,8 +138,8 @@ def download_ripley():
 def download_map_cat():
     df = pd.DataFrame([[m.Multivende, m.MercadoLibre, m.Falabella,
                        m.Ripley, m.Paris, m.Paris_Familia] for m in Mapeo_categorias.query.all()], 
-                      columns=["Categoria Multivende", "Categoria MercadoLibre", "Categoria Falabella", "Categoria Ripley",
-                              "Categoria Paris", "Paris Familia"])
+                      columns=['Categoria Multivende', 'Categoria Mercadolibre', 'Categoria Falabella',
+       'Categoria Ripley ', 'Categoria Paris', 'Paris Familia'])
     
     buffer = io.BytesIO()
     df.to_excel(buffer, index = False)
