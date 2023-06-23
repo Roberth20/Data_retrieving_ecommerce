@@ -14,6 +14,7 @@ with app.app_context():
     for query in querys:
         stmt = db.text(query)
         db.session.execute(stmt)
+        
     db.session.commit()
 
 with app.app_context():
