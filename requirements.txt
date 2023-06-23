@@ -10,3 +10,4 @@ textdistance==4.5.0
 tqdm==4.65.0
 pymysql==1.0.3
 bleach==4.1.0
+openpyxl==3.0.10
