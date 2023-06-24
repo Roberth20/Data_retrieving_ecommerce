@@ -3,10 +3,14 @@ from flask import render_template
 from flask_security import auth_required
 from flask import request
 
-@bp.route("/")
-@auth_required("basic")
+@bp.routes("/")
 def index():
     return render_template("index.html")
+
+@bp.route("/main")
+@auth_required("basic")
+def main():
+    return render_template("main.html")
 
 @bp.route("/webhook", methods=["POST"])
 def webhook():
