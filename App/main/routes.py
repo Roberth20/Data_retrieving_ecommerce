@@ -3,7 +3,7 @@ from flask import render_template
 from flask_security import auth_required
 from flask import request
 
-@bp.routes("/")
+@bp.route("/")
 def index():
     return render_template("index.html")
 
