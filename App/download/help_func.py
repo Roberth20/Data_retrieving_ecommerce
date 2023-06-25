@@ -169,17 +169,42 @@ def get_map(categoria, maps, atts_map, map_att, transformation):
 def limpieza_de_atributo(atributo):
     """Funcion de limpiea de atributos. Hay atributos con nombres largos y
     no mapeados, se obtiene la parte importante y que si esta mapeada de cada 
-    uno."""
+    uno.
+    """
     if "-" in atributo:
         return atributo.split(" - ")[0]
     else:
         return atributo
 
 def missing_info(c, maps, atts, map_att, std_transformation):
+    """Funcion que prepara la coloracion de los datos en el excel.
+    
+    Toma cada producto y denota en color los atributos faltantes que debe tener
+    segun la categoria correspondiente y en cada marketplace.
+    
+    Input : 
+    -------
+      *  c : pandas.Series. Producto y atributos.
+      
+      *  maps : pandas.DataFrame. Tabla con el mapeo de categorias Multivende
+    a categoria correspondiente en cada marketplace
+    
+      *  atts_map : dict. Diccionario en cual cada key representa un marketplace y contiene la
+    tabla con los atributos y categorias del marketplace.
+    
+      *  map_att : dict. Diccionario que contiene como keys las identificacion de los marketplaces
+    y como valores, las tablas de datos que mapean los atributos ente multivende y el martketplace.
+    
+      * transformation : pandas.DataFrame. Tabla con las traducciones de los atributos estandar
+    
+    """
+    # Get attributes for the category of the product
     labels = get_map(c.ProductCategory, maps, atts, map_att, std_transformation)
+    # Set an empty Serie equal in shape that will hold the colors
     arr = pd.Series(index=c.index, dtype="object")
     for market in labels:
         if market[0] == "MLC":
+            # Get the attributes
             std = arr.index[:20]
             index = [idx for idx in arr.index if "HB" in idx]
             mask = []
@@ -187,19 +212,22 @@ def missing_info(c, maps, atts, map_att, std_transformation):
                 for i in index:  
                     arr[i] = None
                     if l.lower() in limpieza_de_atributo(i[:-29]).lower() and pd.isnull(c[i]):
+                        # If the attribute is one on the table of products and is empty
                         mask.append(i)
                         break
                 
                 for s in std:
                     arr[s] = None
                     if l.lower() in s.lower() and pd.isnull(c[s]):
+                        # Check is there is some standard attribute empty
                         mask.append(s)
                         break
             
+            # Fill the selected attributes with the color
             for m in mask:
                 arr[m] = "background-color: #D7DF01"
 
-                
+        # Repeated with each market
         elif market[0] == "FL":
             std = arr.index[:20]
             index = [idx for idx in arr.index if "Falabella" in idx]
@@ -277,6 +305,22 @@ def limpieza_de_atributos(atributos):
     return att
 
 def mapeo_atributos(att_multi, att_market, sw):
+    """Funcion de mapeo de atributos. Toma los atributos dentro de multivende y dentro
+    de los marketplaces y los compara entre si.
+    
+    Input :
+    -------
+      *  att_multi : like list. Atributos dentro de multivende
+      
+      *  att_market : like list. Atributos del marketplace
+      
+      *  sw : list, array like. Lista de palabras stop del espanol.
+      
+    Return : 
+    --------
+      *  mapeo : pandas.DataFrame. Cada atributo del marketplace con su correspondiente
+      equivalencia en multivende
+    """
     mapeo = pd.DataFrame(columns = ["Atributo", "Mapeo"])
     for att in att_multi:
         words_multi = set(sorted([w.lower() for w in att.split() if w.lower() not in sw]))
