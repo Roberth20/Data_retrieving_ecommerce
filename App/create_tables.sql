@@ -608,4 +608,42 @@ CREATE TABLE IF NOT EXISTS clients(
     Mail VARCHAR(64) NULL,
     Phone VARCHAR(12) NULL,
     Items VARCHAR(255) NOT NULL
-)
+);
+    
+CREATE TABLE IF NOT EXISTS Ventas(
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    cantidad INT NOT NULL,
+    codigo_producto VARCHAR(36) NULL,
+    costo_envio FLOAT NOT NULL,
+    estado_boleta VARCHAR(16) NULL,
+    estado_entrega VARCHAR(9) NOT NULL,
+    estado_venta VARCHAR(9) NOT NULL,
+    fecha DATETIME NOT NULL,
+    id_venta VARCHAR(36) NOT NULL,
+    id_hijo_producto VARCHAR(36) NOT NULL,
+    id_padre_producto VARCHAR(36) NOT NULL,
+    mail VARCHAR(120) NULL,
+    market VARCHAR(12) NOT NULL,
+    n_venta VARCHAR(16) NOT NULL,
+    nombre_cliente VARCHAR(120) NOT NULL,
+    nombre_producto VARCHAR(120) NOT NULL,
+    phone VARCHAR(15) NOT NULL,
+    precio INT NOT NULL,
+    url_boleta VARCHAR(160) NULL
+);
+    
+CREATE TABLE IF NOT EXISTS Deliverys(
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    n_seguimiento VARCHAR(10) NOT NULL,
+    codigo VARCHAR(15) NOT NULL,
+    codigo_venta VARCHAR(15) NOT NULL,
+    courier VARCHAR(12) NOT NULL,
+    delivery_status VARCHAR(9) NOT NULL,
+    direccion VARCHAR(80) NULL,
+    impresion_etiqueta VARCHAR(11) NOT NULL,
+    fecha_despacho DATETIME NOT NULL,
+    fecha_promesa DATETIME NULL,
+    id_venta VARCHAR(36) NOT NULL,
+    status_etiqueta VARCHAR(5) NOT NULL,
+    n_venta VARCHAR(15) NULL
+);

@@ -1,7 +1,7 @@
 from App.main import bp
 from flask import render_template
 from flask_security import auth_required
-from flask import request
+from flask import request, redirect
 
 @bp.route("/")
 def index():
@@ -11,6 +11,11 @@ def index():
 @auth_required("basic")
 def main():
     return render_template("main.html")
+
+@bp.route("/authorize")
+@auth_required("basic")
+def authorization():
+    return redirect("https://www.google.com/?hl=es")
 
 @bp.route("/webhook", methods=["POST"])
 def webhook():
