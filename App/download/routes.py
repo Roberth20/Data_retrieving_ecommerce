@@ -1,4 +1,6 @@
-from flask import render_template, Response
+"""Modulo de manejo para todas las descargas"""
+# Import all the stuff
+from flask import render_template, Response, current_app
 from App.download import download
 import pandas as pd
 from App.models.mapeo_atributos import * 
@@ -6,6 +8,7 @@ from App.models.mapeo_categorias import Mapeo_categorias
 from App.models.productos import get_products
 from App.models.atributos_market import * 
 from App.models.clients import clients
+from App.models.checkouts import checkouts, deliverys
 from App.download.help_func import col_color, missing_info
 from flask_security import auth_required
 import io
@@ -18,6 +21,8 @@ def index():
 @download.get("/products")
 @auth_required("basic")
 def download_products():
+    current_app.logger.info("Retrieving data of products from DB")
+    # Load products
     products = get_products()
     # Cargamos los mapeos
     map_att =  {"PR": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Paris.query.all()], 
@@ -50,6 +55,7 @@ def download_products():
     })
     std_transformation.loc[len(std_transformation), :] = ["size", "Talla"]
     
+    current_app.logger.info("Sending excel with products")
     # Preparamos el buffer
     buffer = io.BytesIO()
     # Generamos la tabla de datos con los colores y filtros adecuados
@@ -67,6 +73,7 @@ def download_products():
 
 
 ############################################################################################
+# Sub-menu to download maps
 @download.get("/maps")
 @auth_required("basic")
 def download_maps():
@@ -74,9 +81,13 @@ def download_maps():
 
 @download.get("/maps/paris")
 def download_paris():
+    # Retrieving data
+    current_app.logger.info("Retrieving data of Mapeo Paris from DB")
     df = pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Paris.query.all()], 
                       columns=["Mapeo", "Atributo"])
     
+    # Sending data
+    current_app.logger.info("Sending data Mapeo Paris")
     buffer = io.BytesIO()
     df.to_excel(buffer, index = False)
     
@@ -89,9 +100,13 @@ def download_paris():
 @download.get("/maps/falabella")
 @auth_required("basic")
 def download_falabella():
+    # Retrieving data
+    current_app.logger.info("Retrieving data of Mapeo Falabella from DB")
     df = pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Falabella.query.all()], 
                       columns=["Mapeo", "Atributo"])
     
+    # Sending data
+    current_app.logger.info("Sending data Mapeo Falabella")
     buffer = io.BytesIO()
     df.to_excel(buffer, index = False)
     
@@ -104,9 +119,13 @@ def download_falabella():
 @download.get("/maps/mercadolibre")
 @auth_required("basic")
 def download_mercadolibre():
+    # Retrieving data
+    current_app.logger.info("Retrieving data of Mapeo MercadoLibre from DB")
     df = pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_MercadoLibre.query.all()], 
                       columns=["Mapeo", "Atributo"])
     
+    # Sending data
+    current_app.logger.info("Sending data Mapeo MercadoLibre")
     buffer = io.BytesIO()
     df.to_excel(buffer, index = False)
     
@@ -119,9 +138,13 @@ def download_mercadolibre():
 @download.get("/maps/ripley")
 @auth_required("basic")
 def download_ripley():
+    # Retrieving data
+    current_app.logger.info("Retrieving data of Mapeo Ripley from DB")
     df = pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Ripley.query.all()], 
                       columns=["Mapeo", "Atributo"])
     
+    # Sending data
+    current_app.logger.info("Sending data Mapeo Ripley")
     buffer = io.BytesIO()
     df.to_excel(buffer, index = False)
     
@@ -136,11 +159,15 @@ def download_ripley():
 @download.get("/map_cat")
 @auth_required("basic")
 def download_map_cat():
+    # Retrieving data
+    current_app.logger.info("Retrieving data of Mapeo categorias from DB")
     df = pd.DataFrame([[m.Multivende, m.MercadoLibre, m.Falabella,
                        m.Ripley, m.Paris, m.Paris_Familia] for m in Mapeo_categorias.query.all()], 
                       columns=['Categoria Multivende', 'Categoria Mercadolibre', 'Categoria Falabella',
        'Categoria Ripley ', 'Categoria Paris', 'Paris Familia'])
     
+    # Sending data
+    current_app.logger.info("Sending data Mapeo categorias")
     buffer = io.BytesIO()
     df.to_excel(buffer, index = False)
     
@@ -151,15 +178,94 @@ def download_map_cat():
     return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)
 
 ###################################################################################################
+
+@download.get("/clients")
+@auth_required("basic")
+def download_clients():
+    # Retrieving data
+    current_app.logger.info("Retrieving data of clientes from DB")
+    client_data = pd.DataFrame([[c.name, c.mail, c.phone, c.items] for c in clients.query.all()],
+                              columns = ["Nombre", "Correo", "Telefono", "Items"])
+
+    # Sending data
+    current_app.logger.info("Sending data clientes")
+    buffer = io.BytesIO()
+    client_data.to_excel(buffer, index = False)
+    
+    headers = {
+        'Content-Disposition': 'attachment; filename=clientes.xlsx',
+        'Content-type': 'application/vnd.ms-excel'
+    }
+    return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)
+
+@download.get("/ventas")
+def download_checkouts():
+    # Retrieving data
+    current_app.logger.info("Retrieving data of checkouts from DB")
+    checkout_data = pd.DataFrame([[c.cantidad, c.codigo_producto, c.costo_envio,
+                                  c.estado_boleta, c.estado_entrega, c.estado_venta, 
+                                  c.fecha, c.id_venta, c.id_hijo_producto,
+                                  c.id_padre_producto, c.mail, c.market,
+                                  c.n_venta, c.nombre_cliente, c.nombre_producto,
+                                  c.phone, c.precio, c.url_boleta] for c in checkouts.query.all()], 
+                                 columns = ["cantidad", "codigo producto", "costo envio", "estado boleta",
+                                           "estado entrega", "estado venta", "fecha", "id hijo producto",
+                                           "id padre producto", "mail", "market", "numero venta", 
+                                            "nombre cliente", "nombre producto", "telefono", "precio",
+                                           "url boleta"])
+    
+    # Sending data
+    current_app.logger.info("Sending data checkouts")
+    buffer = io.BytesIO()
+    checkout_data.to_excel(buffer, index = False)
+    
+    headers = {
+        'Content-Disposition': 'attachment; filename=ventas.xlsx',
+        'Content-type': 'application/vnd.ms-excel'
+    }
+    return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)
+
+@download.get("/deliverys")
+def download_deliverys():
+    # Retrieving data
+    current_app.logger.info("Retrieving data of deliverys from DB")
+    delivery_data = pd.DataFrame([[c.n_seguimiento, c.codigo, c.codigo_venta,
+                                  c.courier, c.delivery_status, c.direccion, 
+                                  c.impresion_etiqueta, c.fecha_despacho, c.fecha_promesa,
+                                  c.id_venta, c.status_etiqueta, c.n_venta] 
+                                  for c in deliverys.query.all()], 
+                                 columns = ["N seguimiento", "codigo", "codigo venta", "courier",
+                                           "delivery status", "direccion", "impresion etiqueta", "fecha despacho",
+                                           "fecha promesa", "id venta", "status etiqueta", "N venta"])
+    
+    # Sending data
+    current_app.logger.info("Sending data deliverys")
+    buffer = io.BytesIO()
+    delivery_data.to_excel(buffer, index = False)
+    
+    headers = {
+        'Content-Disposition': 'attachment; filename=deliverys.xlsx',
+        'Content-type': 'application/vnd.ms-excel'
+    }
+    return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)
+
+
+###################################################################################################
+###########    SECCION DE ENDPOINTS ESCONDIDOS (NO UTILES, SOLO DESARROLLO)   #####################
+###################################################################################################
 @download.get("/customs_attributes")
 @auth_required("basic")
 def download_customs_attribute():
+    # Retrieving data
+    current_app.logger.info("Retrieving data of custom_attributes from DB")
     from App.models.ids import customs_ids
     
     customs_data = pd.DataFrame([[c.id_set, c.name_set, c.id, c.name, c.option_id,
                                  c.option_name] for c in customs_ids.query.all()],
                                columns = ["id_set", "name_set", "id", "name", "option_id",
                                          "option_name"])
+    # Sending data
+    current_app.logger.info("Sending data custom_attributes")
     buffer = io.BytesIO()
     customs_data.to_excel(buffer, index = False)
     
@@ -169,18 +275,4 @@ def download_customs_attribute():
     }
     return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)
 
-#####################################################################################################
-@download.get("/clients")
-@auth_required("basic")
-def download_clients():
-    client_data = pd.DataFrame([[c.name, c.mail, c.phone, c.items] for c in clients.query.all()],
-                              columns = ["Nombre", "Correo", "Telefono", "Items"])
-
-    buffer = io.BytesIO()
-    client_data.to_excel(buffer, index = False)
-    
-    headers = {
-        'Content-Disposition': 'attachment; filename=clientes.xlsx',
-        'Content-type': 'application/vnd.ms-excel'
-    }
-    return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)
+###########################################################################################################################

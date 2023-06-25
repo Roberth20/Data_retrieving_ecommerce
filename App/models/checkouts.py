@@ -12,7 +12,7 @@ class checkouts(db.Model):
     fecha = db.Column(db.DateTime, nullable=False)
     id_venta = db.Column(db.String(36), nullable=False)
     id_hijo_producto = db.Column(db.String(36), nullable=False)
-    id_padre_producto = db.Column(db.String(36), nullable-False)
+    id_padre_producto = db.Column(db.String(36), nullable=False)
     mail = db.Column(db.String(120))
     market = db.Column(db.String(12), nullable=False)
     n_venta = db.Column(db.String(16), nullable=False)

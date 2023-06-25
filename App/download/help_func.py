@@ -93,43 +93,73 @@ def get_att_map(lm, map_att):
     return lm[0], atributos
 
 def get_map(categoria, maps, atts_map, map_att, transformation):
-    """sdncaf"""
+    """Funcion para mapeo de valores multivende a valores de marketplace.
+    
+    Input : 
+    -------
+      *  categoria : string. Categoria del producto a mapear.
+      
+      *  maps : pandas.DataFrame. Tabla con el mapeo de categorias Multivende
+    a categoria correspondiente en cada marketplace
+    
+      *  atts_map : dict. Diccionario en cual cada key representa un marketplace y contiene la
+    tabla con los atributos y categorias del marketplace.
+    
+      *  map_att : dict. Diccionario que contiene como keys las identificacion de los marketplaces
+    y como valores, las tablas de datos que mapean los atributos ente multivende y el martketplace.
+    
+      * transformation : pandas.DataFrame. Tabla con las traducciones de los atributos estandar
+      
+    Output : 
+    --------
+      *  mcat : list. Lista con mapeos de atributos para cada marketplace
+    """
     mcat = []
     for c in maps.columns[1:5].values:
+        # Get the mapped category
         info = maps[c][categoria == maps.iloc[:, 0]].values
         if len(info) >= 1:
             info = info[0]
         else:
             continue
         if "Paris" in c:
+            # For Paris, we use the family instead category
             info = maps[categoria == maps.iloc[:, 0]].iloc[:, -1].values
             if len(info) >= 1:
                 info = info[0]
+            # Make adjustments
             info = info.replace(u"\xa0", "")
             category = "PR", info
+            # Process the data
             lm = get_attributes(category, atts_map)
             atm = get_att_map(lm, map_att)
             latm = translate_standard(atm, transformation)
             mcat.append(latm)
         elif "Ripley" in c:
+            # Make adjustments
             words = info.split(" > ")
             words[-1] = words[-1].replace(u"\xa0", "")
             category = "RP", words[-1]
+            # Process the data
             lm = get_attributes(category, atts_map)
             atm = get_att_map(lm, map_att)
             latm = translate_standard(atm, transformation)
             mcat.append(latm)
         elif "MercadoLibre" in c:
+            # Make adjustments
             words = info.split(" - ")
             category = "MLC", words[-1]
+            # Process data
             lm = get_attributes(category, atts_map)
             atm = get_att_map(lm, map_att)
             latm = translate_standard(atm, transformation)
             mcat.append(latm)
         else:
+            # Make adjustments
             words = info.split(" > ")
             words[-1] = words[-1].replace(u"\xa0", "")
             category = "FL", words[-1]
+            # Process data
             lm = get_attributes(category, atts_map)
             atm = get_att_map(lm, map_att)
             latm = translate_standard(atm, transformation)
@@ -137,6 +167,9 @@ def get_map(categoria, maps, atts_map, map_att, transformation):
     return mcat
 
 def limpieza_de_atributo(atributo):
+    """Funcion de limpiea de atributos. Hay atributos con nombres largos y
+    no mapeados, se obtiene la parte importante y que si esta mapeada de cada 
+    uno."""
     if "-" in atributo:
         return atributo.split(" - ")[0]
     else:
@@ -144,7 +177,6 @@ def limpieza_de_atributo(atributo):
 
 def missing_info(c, maps, atts, map_att, std_transformation):
     labels = get_map(c.ProductCategory, maps, atts, map_att, std_transformation)
-    #print(c.ProductCategory)
     arr = pd.Series(index=c.index, dtype="object")
     for market in labels:
         if market[0] == "MLC":
@@ -233,6 +265,9 @@ def missing_info(c, maps, atts, map_att, std_transformation):
 ################################################################################
 
 def limpieza_de_atributos(atributos):
+    """Funcion de limpiea de atributos. Hay atributos con nombres largos y
+    no mapeados, se obtiene la parte importante y que si esta mapeada de cada 
+    uno."""
     att = []
     for cat in atributos:
         if "-" in cat:

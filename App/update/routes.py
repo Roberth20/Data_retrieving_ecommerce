@@ -14,6 +14,7 @@ from App.get_data.Populate_tables import upload_data_products
 from datetime import datetime
 from App.models.clients import clients
 from App.models.ids import ids, customs_ids
+from App.models.checkouts import checkouts, deliverys
 
 ALLOWED_EXTENSIONS = ["xlsx"]
 
@@ -385,3 +386,78 @@ def update_custom_ids():
             return render_template("update/success.html", market = "custom Ids")
     
     return render_template("update/sample.html", market="custom Ids")
+
+@update.route("/checkouts", methods=["GET"])
+@auth_required("basic")
+def update_checkouts():
+    result = db.session.scalar(db.select(checkouts).order_by(checkouts.fecha.desc()))
+    last_update = result.fecha
+    now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+    last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
+    url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/checkouts/light/p/1?_updated_at_from={last}&_updated_at_to={now}"
+    last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
+    if last_auth == None:
+        return render_template("update/token_error.html")
+    diff = datetime.utcnow() - last_auth.expire
+    if diff.total_seconds()/3600 > 6:
+        return render_template("update/token_error.html")
+    
+    token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
+    headers = {
+            'Authorization': f'Bearer {token}'
+    }
+    response = requests.request("GET", url, headers=headers).json()
+    
+    pages = response["pagination"]["total_pages"]
+    ids= []
+    for p in range(0, pages):
+        url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/checkouts/light/p/{p+1}?_updated_at_from={last}&_updated_at_to={now}"
+        data = requests.get(url, headers=headers).json()
+        for d in data["entries"]:
+            ids.append(d["_id"])
+
+    checkouts = []
+    for id in ids:
+        tmp = {}
+        url = f"https://app.multivende.com/api/checkouts/{id}"
+        checkout = requests.get(url, headers=headers).json()
+        tmp["fecha"] = checkout["soldAt"]
+        tmp["nombre"] = checkout["Client"]["fullName"]
+        tmp["n venta"] = checkout["CheckoutLink"]["externalOrderNumber"] # Numero de orden en marketplace
+        tmp["id"] = checkout["CheckoutLink"]["CheckoutId"] # Codigo en multivende
+        tmp["estado entrega"] = checkout["deliveryStatus"]
+        tmp["costo de envio"] = checkout["DeliveryOrderInCheckouts"][0]["DeliveryOrder"]["cost"]
+        tmp["market"] = checkout["origin"]
+        tmp["mail"] = checkout["Client"]["email"]
+        tmp["phone"] = checkout["Client"]["phoneNumber"]
+        try:
+            url = f"https://app.multivende.com/api/checkouts/{id}/electronic-billing-documents/p/1"
+            billing = requests.get(url, headers=headers).json()
+            tmp["estado boleta"] = billing["entries"][-1]["ElectronicBillingDocumentFiles"][-1]["synchronizationStatus"]
+            tmp["url boleta"] = billing["entries"][-1]["ElectronicBillingDocumentFiles"][-1]["url"]
+        except:
+            tmp["estado boleta"] = None
+            tmp["url boleta"] = None
+
+        tmp["estado venta"] = []
+        for status in checkout["CheckoutPayments"]:
+            tmp["estado venta"].append(status["paymentStatus"])
+        for product in checkout["CheckoutItems"]:
+            item = tmp.copy()
+            item["codigo producto"] = product["code"]
+            item["nombre producto"] = product["ProductVersion"]["Product"]["name"]
+            item["id padre producto"] = product["ProductVersion"]["ProductId"]
+            item["id hijo producto"] = product["ProductVersionId"]
+            item["cantidad"] = product["count"]
+            item["precio"] = product["gross"]
+            checkouts.append(item)
+
+    df = pd.DataFrame(checkouts)
+    df["fecha"] = pd.to_datetime(df["fecha"])
+    df["fecha"] = df["fecha"].dt.tz_convert(None)
+    df= df.fillna(np.nan)
+    for i in df["estado venta"].index:
+        df.loc[i, "estado venta"] = df["estado venta"][i][-1]
+        
+    df = df.where(df.notna(), None)
+    

@@ -646,4 +646,4 @@ CREATE TABLE IF NOT EXISTS Deliverys(
     id_venta VARCHAR(36) NOT NULL,
     status_etiqueta VARCHAR(5) NOT NULL,
     n_venta VARCHAR(15) NULL
-);
+)

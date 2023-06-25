@@ -1,5 +1,12 @@
+"""Modulo para el envio de productos actualizados en el servidor a la base
+de datos de Multivende, actualizando los mismos en cada Marketplace.
+
+NOTA: Solo actualiza productos previamente creados. Para crear productos o versiones nuevas
+se debe cambiar el 'status', hacer ajustes de inventario y precios.
+"""
+# Import all the things
 from App.create_update import cupdate
-from flask import render_template
+from flask import render_template, current_app
 from flask_security import auth_required
 from App.create_update.funcs import get_serialized_data
 from App.models.productos import get_products
@@ -10,22 +17,36 @@ from datetime import datetime
 from App.auth.funcs import decrypt
 import requests
 
+# Landing page for the upload
 @cupdate.get("/")
 @auth_required("basic")
 def confirmation():
     return render_template("create_update/main.html")
 
-
+# Endpoint to prepare data and upload
 @cupdate.get("/send")
 @auth_required("basic")
 def send_form():
+    # Get the last token info registed on the DB
+    current_app.logger.info("Retrieving Token")
     last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
     diff = datetime.utcnow() - last_auth.expire
-    if diff.total_seconds()/3600 > 6:
+    
+    # Check if exists a token
+    if last_auth == None:
+        current_app.logger.warning("There is not token in the DB")
         return render_template("update/token_error.html")
     
+    # Check if the token expired (after 6 hours)
+    if diff.total_seconds()/3600 > 6:
+        current_app.logger.info("The token expired.")
+        return render_template("update/token_error.html")
+    
+    # Decrypt token
     token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
     
+    # Load data
+    current_app.logger.info("Getting data of products to send.")
     products = get_products()
     id_data = pd.DataFrame([[i.id, i.name, i.type] for i in ids.query.all()],
                           columns = ["id", "name", "type"])
@@ -33,13 +54,20 @@ def send_form():
                                  c.option_name] for c in customs_ids.query.all()],
                                columns = ["id_set", "name_set", "id", "name", "option_id",
                                          "option_name"])
-    std = std = products.columns[:20]
+    std = products.columns[:20]
+    
+    # Prepare to send data of each product on the database
     message = None
-    err = False
     for i in range(products.shape[0]):
+        # Get product
         p = products.iloc[i, :].copy()
         p = p.fillna(np.nan)
+        
+        # Get data in better format to work
+        current_app.logger.info("Preparing data to send json of products")
         custom_p, custom_v = get_serialized_data(p, customs_data)
+        
+        # Preparing all info to be inserted in the upload template
         tags = []
         if pd.notna(p["tags"]):
             tags.append({
@@ -61,6 +89,8 @@ def send_form():
         color = None
         if pd.notna(p["color"]):
             color =  id_data["id"][id_data["name"] == p["color"]].values[0]
+        
+        # Inserting data in the template
         payload = json.dumps({
           "name": p["name"],
           "alias": None,
@@ -129,16 +159,19 @@ def send_form():
           'Content-Type': 'application/json',
           'Authorization': f'Bearer {token}'
         }
+        
+        # Sending request 
         url = f"https://app.multivende.com/api/products/{p.name[0]}"
-        
+        current_app.logger.info("Sending request PUT to update products at Multivende")
         response = requests.request("PUT", url, headers=headers, data=payload)
-        if response.status_code != 201:
-            message = p["name"] +" "+ response.reason
-            err = True
-            break
-        message = p["name"] + " OK"
         
-    if err:
-        return render_template("create_update/error.html", message=message)
+        # Check there was an error and abort sending data
+        if response.status_code != 201:
+            current_app.logger.error(f"Aborting sending data for reason: {response.reason}")
+            message = p["name"] +" "+ response.reason + " " + response.text
+            return render_template("create_update/error.html", message=message)
+        
+        message = p["name"] + " OK"
     
+    current_app.logger.info("Data sent without problems")
     return render_template("create_update/success.html")
