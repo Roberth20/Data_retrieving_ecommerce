@@ -1,3 +1,5 @@
+"""Modulo con los endpoints relacionados a la actualizacion de los datos"""
+
 from App.update import update
 import pandas as pd
 from flask import render_template, request, redirect
@@ -11,7 +13,7 @@ from App.auth.funcs import decrypt
 from flask import current_app
 from App.models.productos import get_products
 from App.get_data.Populate_tables import upload_data_products
-from datetime import datetime
+from datetime import datetime, timedelta
 from App.models.clients import clients
 from App.models.ids import ids, customs_ids
 from App.models.checkouts import checkouts, deliverys
@@ -40,12 +42,14 @@ def update_paris():
         if file.filename == '':
             return redirect(request.url)
         if file and allowed_file(file.filename):
+            # Load data
             df = pd.read_excel(file)
             db_paris = pd.DataFrame([[m.id, m.Mapeo, m.Atributo] for m in Mapeo_Paris.query.all()], 
                       columns=["Id","Mapeo", "Atributo"])
+            # Check if data is valid
             if ~df.columns.isin(db_paris.columns).all():
                 return render_template("update/error.html")
-            
+
             check_differences_and_upload_maps(df, db_paris, db, Mapeo_Paris)
             
             return render_template("update/success.html", market = "Paris")
@@ -65,9 +69,11 @@ def update_falabella():
         if file.filename == '':
             return redirect(request.url)
         if file and allowed_file(file.filename):
+            # Load data
             df = pd.read_excel(file)
             db_falabella = pd.DataFrame([[m.id, m.Mapeo, m.Atributo] for m in Mapeo_Falabella.query.all()], 
                       columns=["Id","Mapeo", "Atributo"])
+            # Check if data is valid
             if ~df.columns.isin(db_falabella.columns).all():
                 return render_template("update/error.html")
             
@@ -90,9 +96,11 @@ def update_mercadolibre():
         if file.filename == '':
             return redirect(request.url)
         if file and allowed_file(file.filename):
+            # Load data
             df = pd.read_excel(file)
             db_mlc = pd.DataFrame([[m.id, m.Mapeo, m.Atributo] for m in Mapeo_MercadoLibre.query.all()], 
                       columns=["Id","Mapeo", "Atributo"])
+            # Check if data is valid
             if ~df.columns.isin(db_mlc.columns).all():
                 return render_template("update/error.html")
             
@@ -115,9 +123,11 @@ def update_ripley():
         if file.filename == '':
             return redirect(request.url)
         if file and allowed_file(file.filename):
+            # Load data
             df = pd.read_excel(file)
             db_ripley = pd.DataFrame([[m.id, m.Mapeo, m.Atributo] for m in Mapeo_Ripley.query.all()], 
                       columns=["Id","Mapeo", "Atributo"])
+            # Check if data is valid
             if ~df.columns.isin(db_ripley.columns).all():
                 return render_template("update/error.html")
             
@@ -140,11 +150,13 @@ def update_mapcat():
         if file.filename == '':
             return redirect(request.url)
         if file and allowed_file(file.filename):
+            # Load data
             df = pd.read_excel(file)
             db_cat = pd.DataFrame([[m.id, m.Multivende, m.MercadoLibre, m.Falabella,
                        m.Ripley, m.Paris, m.Paris_Familia] for m in Mapeo_categorias.query.all()], 
                       columns=["Id",'Categoria Multivende', 'Categoria Mercadolibre', 'Categoria Falabella',
        'Categoria Ripley ', 'Categoria Paris', 'Paris Familia'])
+            # Check if data is valid
             if ~df.columns.isin(db_cat.columns).all():
                 return render_template("update/error.html")
             
@@ -157,18 +169,23 @@ def update_mapcat():
 @update.get("/products")
 @auth_required("basic")
 def update_products():
+    # Get last token
     url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/all-product-attributes"
     last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
+    # Check if exists token
     if last_auth == None:
         return render_template("update/token_error.html")
     diff = datetime.utcnow() - last_auth.expire
+    # The token expired
     if diff.total_seconds()/3600 > 6:
         return render_template("update/token_error.html")
     
+    # Decrypt token
     token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
     headers = {
             'Authorization': f'Bearer {token}'
     }
+    # Get data
     response = requests.request("GET", url, headers=headers).json()
     # Obtenemos dos grupos de atributos, lo separamos
     att = response["customAttributes"]
@@ -297,7 +314,8 @@ def update_products():
     diff = df[~df.isin(data)].dropna(how="all")
     if diff.shape[0] == 0:
         return render_template("update/products.html")
-        
+    
+    # Delete old data
     stmt = db.text("DELETE FROM Productos_standard")
     db.session.execute(stmt)
     stmt = db.text("DELETE FROM Productos_MercadoLibre")
@@ -312,18 +330,21 @@ def update_products():
     db.session.execute(stmt)
     db.session.commit()
     
+    # Replace with new data
     message = upload_data_products(df, db)
     return render_template("update/products_updated", message=message)
 
 @update.get("/clients")
 @auth_required("basic")
 def clients_data():
+    # Retrieve data from the available marketplaces
     fl_customers = get_data_falabella(current_app.config["FALABELLA_USER"], current_app.config["FALABELLA_API_KEY"])
     pr_customers = get_data_paris(current_app.config["PARIS_API_KEY"])
     rp_customers = get_data_ripley(current_app.config["RIPLEY_API_KEY"])
     
     data = pd.concat([pr_customers, fl_customers, rp_customers], axis=0)
     data.reset_index(drop=True, inplace=True)
+    # Check if already exists and add to DB
     for i, row in data.iterrows():
         customer = clients(id = i, name=row["Name"], mail=row["Mail"], phone=row["Phone"], items=row["Items"])
         c = db.session.get(clients, i)
@@ -336,6 +357,96 @@ def clients_data():
     db.session.commit()
     
     return render_template("update/success_client.html")
+
+@update.route("/checkouts", methods=["GET"])
+@auth_required("basic")
+def update_checkouts():
+    import numpy as np
+    # Last time updated
+    result = db.session.scalar(db.select(checkouts).order_by(checkouts.fecha.desc()))
+    last_update = result.fecha - timedelta(days=28) # One month before to update changes of recents sells
+    now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+    last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
+    url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/checkouts/light/p/1?_updated_at_from={last}&_updated_at_to={now}"
+    last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
+    # Check if token exists
+    if last_auth == None:
+        return render_template("update/token_error.html")
+    diff = datetime.utcnow() - last_auth.expire
+    # Check is token expired
+    if diff.total_seconds()/3600 > 6:
+        return render_template("update/token_error.html")
+    # Decrypt token
+    token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
+    headers = {
+            'Authorization': f'Bearer {token}'
+    }
+    # Get data
+    response = requests.request("GET", url, headers=headers).json()
+    
+    pages = response["pagination"]["total_pages"]
+    ids= []
+    # First all ids
+    for p in range(0, pages):
+        url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/checkouts/light/p/{p+1}?_updated_at_from={last}&_updated_at_to={now}"
+        data = requests.get(url, headers=headers).json()
+        for d in data["entries"]:
+            ids.append(d["_id"])
+    
+    # Now the information completed
+    ventas = []
+    for id in ids:
+        tmp = {}
+        url = f"https://app.multivende.com/api/checkouts/{id}"
+        checkout = requests.get(url, headers=headers).json()
+        tmp["fecha"] = checkout["soldAt"]
+        tmp["nombre"] = checkout["Client"]["fullName"]
+        tmp["n venta"] = checkout["CheckoutLink"]["externalOrderNumber"] # Numero de orden en marketplace
+        tmp["id"] = checkout["CheckoutLink"]["CheckoutId"] # Codigo en multivende
+        tmp["estado entrega"] = checkout["deliveryStatus"]
+        tmp["costo de envio"] = checkout["DeliveryOrderInCheckouts"][0]["DeliveryOrder"]["cost"]
+        tmp["market"] = checkout["origin"]
+        tmp["mail"] = checkout["Client"]["email"]
+        tmp["phone"] = checkout["Client"]["phoneNumber"]
+        # Try to find the billing files
+        try:
+            url = f"https://app.multivende.com/api/checkouts/{id}/electronic-billing-documents/p/1"
+            billing = requests.get(url, headers=headers).json()
+            tmp["estado boleta"] = billing["entries"][-1]["ElectronicBillingDocumentFiles"][-1]["synchronizationStatus"]
+            tmp["url boleta"] = billing["entries"][-1]["ElectronicBillingDocumentFiles"][-1]["url"]
+        except:
+            tmp["estado boleta"] = None
+            tmp["url boleta"] = None
+        
+        # Getting all status of ventas
+        tmp["estado venta"] = []
+        for status in checkout["CheckoutPayments"]:
+            tmp["estado venta"].append(status["paymentStatus"])
+        # For each item we split the checkout
+        for product in checkout["CheckoutItems"]:
+            item = tmp.copy()
+            item["codigo producto"] = product["code"]
+            item["nombre producto"] = product["ProductVersion"]["Product"]["name"]
+            item["id padre producto"] = product["ProductVersion"]["ProductId"]
+            item["id hijo producto"] = product["ProductVersionId"]
+            item["cantidad"] = product["count"]
+            item["precio"] = product["gross"]
+            ventas.append(item)
+
+    # Load data to be processed
+    df = pd.DataFrame(ventas)
+    df["fecha"] = pd.to_datetime(df["fecha"])
+    df["fecha"] = df["fecha"].dt.tz_convert(None)
+    df= df.fillna(np.nan)
+    for i in df["estado venta"].index:
+        df.loc[i, "estado venta"] = df["estado venta"][i][-1]
+        
+    df = df.where(df.notna(), None)
+    
+    check_difference_and_update_checkouts(df, checkouts, db)
+    
+    return render_template("update/checkouts.html")
+
 
 @update.route("/ids", methods=["GET", "POST"])
 @auth_required("basic")
@@ -361,6 +472,9 @@ def update_ids():
     
     return render_template("update/sample.html", market="Ids")
 
+###################################################################################################
+###############################          DELEVOPING-PURPOSE         ###############################
+###################################################################################################
 @update.route("/custom_ids", methods=["GET", "POST"])
 @auth_required("basic")
 def update_custom_ids():
@@ -374,9 +488,11 @@ def update_custom_ids():
         if file.filename == '':
             return redirect(request.url)
         if file and allowed_file(file.filename):
+            # Load data
             df = pd.read_excel(file)
             df = df.where(df.notna(), None)
             for i, row in df.iterrows():
+                # Update data
                 c_ids = customs_ids(id_set = row["id_set"], name_set = row["name_set"], id = row["id"],
                                    name = row["name"], option_name = row["option_name"], option_id = row["option_id"])
                 db.session.add(c_ids)
@@ -387,77 +503,4 @@ def update_custom_ids():
     
     return render_template("update/sample.html", market="custom Ids")
 
-@update.route("/checkouts", methods=["GET"])
-@auth_required("basic")
-def update_checkouts():
-    result = db.session.scalar(db.select(checkouts).order_by(checkouts.fecha.desc()))
-    last_update = result.fecha
-    now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
-    last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
-    url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/checkouts/light/p/1?_updated_at_from={last}&_updated_at_to={now}"
-    last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
-    if last_auth == None:
-        return render_template("update/token_error.html")
-    diff = datetime.utcnow() - last_auth.expire
-    if diff.total_seconds()/3600 > 6:
-        return render_template("update/token_error.html")
-    
-    token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
-    headers = {
-            'Authorization': f'Bearer {token}'
-    }
-    response = requests.request("GET", url, headers=headers).json()
-    
-    pages = response["pagination"]["total_pages"]
-    ids= []
-    for p in range(0, pages):
-        url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/checkouts/light/p/{p+1}?_updated_at_from={last}&_updated_at_to={now}"
-        data = requests.get(url, headers=headers).json()
-        for d in data["entries"]:
-            ids.append(d["_id"])
-
-    checkouts = []
-    for id in ids:
-        tmp = {}
-        url = f"https://app.multivende.com/api/checkouts/{id}"
-        checkout = requests.get(url, headers=headers).json()
-        tmp["fecha"] = checkout["soldAt"]
-        tmp["nombre"] = checkout["Client"]["fullName"]
-        tmp["n venta"] = checkout["CheckoutLink"]["externalOrderNumber"] # Numero de orden en marketplace
-        tmp["id"] = checkout["CheckoutLink"]["CheckoutId"] # Codigo en multivende
-        tmp["estado entrega"] = checkout["deliveryStatus"]
-        tmp["costo de envio"] = checkout["DeliveryOrderInCheckouts"][0]["DeliveryOrder"]["cost"]
-        tmp["market"] = checkout["origin"]
-        tmp["mail"] = checkout["Client"]["email"]
-        tmp["phone"] = checkout["Client"]["phoneNumber"]
-        try:
-            url = f"https://app.multivende.com/api/checkouts/{id}/electronic-billing-documents/p/1"
-            billing = requests.get(url, headers=headers).json()
-            tmp["estado boleta"] = billing["entries"][-1]["ElectronicBillingDocumentFiles"][-1]["synchronizationStatus"]
-            tmp["url boleta"] = billing["entries"][-1]["ElectronicBillingDocumentFiles"][-1]["url"]
-        except:
-            tmp["estado boleta"] = None
-            tmp["url boleta"] = None
-
-        tmp["estado venta"] = []
-        for status in checkout["CheckoutPayments"]:
-            tmp["estado venta"].append(status["paymentStatus"])
-        for product in checkout["CheckoutItems"]:
-            item = tmp.copy()
-            item["codigo producto"] = product["code"]
-            item["nombre producto"] = product["ProductVersion"]["Product"]["name"]
-            item["id padre producto"] = product["ProductVersion"]["ProductId"]
-            item["id hijo producto"] = product["ProductVersionId"]
-            item["cantidad"] = product["count"]
-            item["precio"] = product["gross"]
-            checkouts.append(item)
-
-    df = pd.DataFrame(checkouts)
-    df["fecha"] = pd.to_datetime(df["fecha"])
-    df["fecha"] = df["fecha"].dt.tz_convert(None)
-    df= df.fillna(np.nan)
-    for i in df["estado venta"].index:
-        df.loc[i, "estado venta"] = df["estado venta"][i][-1]
-        
-    df = df.where(df.notna(), None)
     

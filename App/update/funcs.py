@@ -1,9 +1,36 @@
+"""Funciones de utilidad para la actualizacion de datos"""
+# Import imporant libraries
 import datetime
 import requests
+import numpy as np
 
 def check_differences_and_upload_maps(df, db_market, db, market):
+    """Funcion para actualizacion de los mapeos de atributos.
+    
+    Cada marketplace mantiene la misma estructura, facilitando su actualizacion.
+    
+    NOTA: La actualizacion se realiza manualmente, las tecnicas de automatizadas no arrojaron 
+    resultados viables para el tiempo disponible.
+    
+    Input : 
+    ---------
+      *  df : pandas.DataFrame. Tablas de datos con el mapeo subido por el usuario.
+      
+      *  db_market : pandas.DataFrame. Tabla de datos con el mapeo guardado en la base de datos.
+      
+      *  db : flask_sqlalchemy.SQLAlchemy. Instancia representativa de la base de datos.
+      
+      *  market : SQLAlchemy.Model. Objeto con el metadata de la tabla correspondiente al 
+      marketplace. Ver App/models/*.py para mas detalle sobre los modelos definidos.
+      
+    Output :
+    ---------
+      * None.
+    """
+    # Check differences
     diff = df[~df.isin(db_market)].dropna(how="all")
     for i, row in diff.iterrows():
+        # If the difference is a change in a column, update it
         if row.isna().any():
             ID = db_market[db_market.index == i].iloc[0, 0]
             mapeo = db.session.get(market, ID)
@@ -12,14 +39,37 @@ def check_differences_and_upload_maps(df, db_market, db, market):
             else:
                 mapeo.Atributo = row[row.notna()][0]
             db.session.commit()
+        # Add the new row to the map
         else:
             mapeo = market(Mapeo=row.Mapeo, Atributo=row.Atributo)
             db.session.add(mapeo)
             db.session.commit()
 
 def check_differences_and_upload_cats(df, db_cat, db, model):
+    """Funcion para actualizacion de los mapeos de categorias.
+    
+    NOTA: La actualizacion se realiza manualmente, las tecnicas de automatizadas no arrojaron 
+    resultados viables para el tiempo disponible.
+    
+    Input : 
+    ---------
+      *  df : pandas.DataFrame. Tablas de datos con el mapeo subido por el usuario.
+      
+      *  db_cat : pandas.DataFrame. Tabla de datos con el mapeo guardado en la base de datos.
+      
+      *  db : flask_sqlalchemy.SQLAlchemy. Instancia representativa de la base de datos.
+      
+      *  model : SQLAlchemy.Model. Objeto con el metadata de la tabla que guarda los datos de
+      mapeo. Ver App/models/*.py para mas detalle sobre los modelos definidos.
+      
+    Output :
+    ---------
+      * None.
+    """
+    # Check differences
     diff = df[~df.isin(db_cat)].dropna(how="all")
     for i, row in diff.iterrows():
+        # If the difference is in A COLUMN, update IT
         if row.isna().any():
             ID = db_cat[db_cat.index == i].iloc[0, 0]
             mapeo = db.session.get(model, ID)
@@ -36,6 +86,7 @@ def check_differences_and_upload_cats(df, db_cat, db, model):
             else:
                 mapeo.Paris_Familia = row[row.notna()][0]
             db.session.commit()
+        # Add rows that don't exist in the DB
         else:
             mapeo = model(Multivende=row['Categoria Multivende'], 
                         MercadoLibre=row['Categoria Mercadolibre'],
@@ -46,25 +97,77 @@ def check_differences_and_upload_cats(df, db_cat, db, model):
             db.session.add(mapeo)
             db.session.commit()
             
-def check_differences_and_upload_products(df, db_products, db, market):
-    diff = df[~df.isin(db_market)].dropna(how="all")
-    for i, row in diff.iterrows():
-        if row.isna().any():
-            ID = db_market[db_market.index == i].iloc[0, 0]
-            mapeo = db.session.get(market, ID)
-            if row[row.notna()].index[0] == "Mapeo":
-                mapeo.Mapeo = row[row.notna()][0]
-            else:
-                mapeo.Atributo = row[row.notna()][0]
-            db.session.commit()
+def check_difference_and_update_checkouts(data, checkouts, db):
+    """Funcion para actualizacion de ventas/checkouts.
+    
+    Input : 
+    ---------
+      *  data : pandas.DataFrame. Tablas de datos con los checkouts a actualizar.
+      
+      *  checkouts : SQLAlchemy.Model. Objeto con el metadata de la tabla correspondiente a las 
+      ventas. Ver App/models/*.py para mas detalle sobre los modelos definidos..
+      
+      *  db : flask_sqlalchemy.SQLAlchemy. Instancia representativa de la base de datos. 
+      
+    Output :
+    ---------
+      * None.
+    """
+    # Check if the checkout is in the DB
+    for i, row in data.iterrows():
+        result = db.session.scalar(db.select(checkouts).where(checkouts.id_venta == row["id"] and 
+                                                          checkouts.id_hijo_producto == row["id hijo producto"]))
+        # Add the new checkout to the DB
+        if result == None
+            venta = checkouts(cantidad = row["cantidad"], codigo_producto = ["codigo producto"],
+                         costo_envio = row["costo de envio"], estado_boleta = row["estado boleta"],
+                         estado_entrega = row["estado entrega"], estado_venta = row["estado venta"],
+                         fecha = row["fecha"], id_venta = row["id"], id_hijo_producto = row["id hijo producto"],
+                         id_padre_producto = row["id padre producto"], mail = row["mail"], 
+                         market = row["market"], n_venta = row["n venta"], 
+                         nombre_cliente = row["nombre"], nombre_producto = row["nombre producto"],
+                         phone = row["phone"], precio = row["precio"],
+                         url_boleta = row["url boleta"])
+            db.session.add(venta)
+        # Update the old values
         else:
-            mapeo = market(Mapeo=row.Mapeo, Atributo=row.Atributo)
-            db.session.add(mapeo)
-            db.session.commit()
+            stmt = (
+                db.update(checkouts)
+                .where(checkouts.id_venta == row["id"] and 
+                       checkouts.id_hijo_producto == row["id hijo producto"])
+                .values(cantidad = row["cantidad"], codigo_producto = ["codigo producto"],
+                         costo_envio = row["costo de envio"], estado_boleta = row["estado boleta"],
+                         estado_entrega = row["estado entrega"], estado_venta = row["estado venta"],
+                         fecha = row["fecha"], id_venta = row["id"], id_hijo_producto = row["id hijo producto"],
+                         id_padre_producto = row["id padre producto"], mail = row["mail"], 
+                         market = row["market"], n_venta = row["n venta"], 
+                         nombre_cliente = row["nombre"], nombre_producto = row["nombre producto"],
+                         phone = row["phone"], precio = row["precio"],
+                         url_boleta = row["url boleta"])
+            )
+            db.session.execute(stmt)
+    db.session.commit()
             
 def get_data_falabella(userId, key):
+    """Funcion para recopilacion de datos sobre clientes.
+    
+    *** De los checkouts se puede obtener informacion similar, esta se obtiene directo de
+    Falabella ***
+    
+    Input : 
+    ---------
+      *  userId : str. Identificacion del vendedor en Falabella.
+      
+      *  key : str. Api key para acceso a falabella.
+      
+    Return :
+    ---------
+      *  pandas.DataFrame con los datos de los clientes (determinados por el contratista)
+    """
+    # Import useful functions
     from App.get_data.Retrieve_data_Falabella import get_response_falabella
     import pandas as pd
+    # Set parameters
     parameters = {
       'UserID': userId,
       'Version': '1.0',
@@ -72,10 +175,11 @@ def get_data_falabella(userId, key):
       'Format':'JSON',
       'Timestamp': datetime.datetime.now().isoformat()}
     
-
+    # Retrieve data
     data = get_response_falabella(parameters, key).json()
     orders = data["SuccessResponse"]["Body"]["Orders"]["Order"]
     customers = []
+    # Get clients data
     for order in orders:
         tmp = {}
         tmp["Name"] = order["CustomerFirstName"]+" "+order["CustomerLastName"]
@@ -86,7 +190,8 @@ def get_data_falabella(userId, key):
         tmp["Phone"] = order["AddressBilling"]["Phone"]
         if order["AddressBilling"]["Phone"] == "":
             tmp["Phone"] = order["AddressShipping"]["Phone"]
-
+        
+        # Set parameter to retrieve items from the checkout
         parameters = {
           'UserID': userId,
           'Version': '1.0',
@@ -108,10 +213,25 @@ def get_data_falabella(userId, key):
 
 
         customers.append(tmp)
-        return pd.DataFrame(customers)
+    
+    return pd.DataFrame(customers)
     
 def get_data_paris(key):
+    """Funcion para recopilacion de datos sobre clientes.
+    
+    *** De los checkouts se puede obtener informacion similar, esta se obtiene directo de
+    Paris ***
+    
+    Input : 
+    ---------
+      *  key : str. Api key para acceso a Paris.
+      
+    Return :
+    ---------
+      *  pandas.DataFrame con los datos de los clientes (determinados por el contratista)
+    """
     import pandas as pd
+    # Authenticate connection
     base_url = "https://api-developers.ecomm.cencosud.com/"
 
     headers = {"Content-Type": "application/json",
@@ -143,10 +263,24 @@ def get_data_paris(key):
     return pd.DataFrame(customers)
 
 def get_data_ripley(key):
+    """Funcion para recopilacion de datos sobre clientes.
+    
+    *** De los checkouts se puede obtener informacion similar, esta se obtiene directo de
+    Ripley ***
+    
+    Input : 
+    ---------
+      *  key : str. Api key para acceso a Ripley.
+      
+    Return :
+    ---------
+      *  pandas.DataFrame con los datos de los clientes (determinados por el contratista)
+    """
     import pandas as pd
     # Definimos el url de interes
     url = "https://ripley-prod.mirakl.net/api/orders"
     header = {"Authorization": key}
+    # Retrieve data
     message = requests.get(url, headers= header).json()
     customers = []
     for order in  message["orders"]:
