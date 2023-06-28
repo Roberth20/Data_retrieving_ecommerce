@@ -5,6 +5,7 @@ from App.models.auth import auth_app
 import json
 from App.extensions.db import db
 from App.auth.funcs import encrypt
+import requests
 
 @auth.route("/", methods=["GET", "POST"])
 @auth_required("basic")
