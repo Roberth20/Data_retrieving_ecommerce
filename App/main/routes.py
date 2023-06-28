@@ -12,10 +12,10 @@ def index():
 def main():
     return render_template("main.html")
 
-@bp.route("/authorize")
-@auth_required("basic")
-def authorization():
-    return redirect("https://www.google.com/?hl=es")
+#@bp.route("/authorize")
+#@auth_required("basic")
+#def authorization():
+ #   return redirect("https://app.multivende.com/apps/authorize?response_type=code&client_id=114858424934&redirect_uri=http://data-retrieving-ecommerce-dev.us-east-2.elasticbeanstalk.com/auth")
 
 @bp.route("/webhook", methods=["POST"])
 def webhook():
