@@ -118,7 +118,7 @@ def check_difference_and_update_checkouts(data, checkouts, db):
         result = db.session.scalar(db.select(checkouts).where(checkouts.id_venta == row["id"] and 
                                                           checkouts.id_hijo_producto == row["id hijo producto"]))
         # Add the new checkout to the DB
-        if result == None
+        if result == None:
             venta = checkouts(cantidad = row["cantidad"], codigo_producto = ["codigo producto"],
                          costo_envio = row["costo de envio"], estado_boleta = row["estado boleta"],
                          estado_entrega = row["estado entrega"], estado_venta = row["estado venta"],
