@@ -16,6 +16,7 @@ from App.models.auth import auth_app
 from datetime import datetime
 from App.auth.funcs import decrypt
 import requests
+import pandas as pd
 
 # Landing page for the upload
 @cupdate.get("/")
