@@ -341,12 +341,15 @@ def update_products():
 @auth_required("basic")
 def clients_data():
     # Retrieve data from the available marketplaces
-    try:
-        fl_customers = get_data_falabella(current_app.config["FALABELLA_USER"], current_app.config["FALABELLA_API_KEY"])
-        pr_customers = get_data_paris(current_app.config["PARIS_API_KEY"])
-        rp_customers = get_data_ripley(current_app.config["RIPLEY_API_KEY"])
-    except Exception as e:
-        return "Hubo un problema\n"+str(e)
+    fl_customers = get_data_falabella(current_app.config["FALABELLA_USER"], current_app.config["FALABELLA_API_KEY"])
+    if type(fl_customers) == str:
+        return fl_customers
+    pr_customers = get_data_paris(current_app.config["PARIS_API_KEY"])
+    if type(pl_customers) == str:
+        return pl_customers
+    rp_customers = get_data_ripley(current_app.config["RIPLEY_API_KEY"])
+    if type(rp_customers) == str:
+        return rp_customers
     
     data = pd.concat([pr_customers, fl_customers, rp_customers], axis=0)
     data.reset_index(drop=True, inplace=True)

@@ -176,7 +176,11 @@ def get_data_falabella(userId, key):
       'Timestamp': datetime.datetime.now().isoformat()}
     
     # Retrieve data
-    data = get_response_falabella(parameters, key).json()
+    info = get_response_falabella(parameters, key)
+    try:
+        data = info.json()
+    except:
+        return info.text
     orders = data["SuccessResponse"]["Body"]["Orders"]["Order"]
     customers = []
     # Get clients data
@@ -200,7 +204,11 @@ def get_data_falabella(userId, key):
           'Timestamp': datetime.datetime.now().isoformat(),
           "OrderId": order["OrderId"]
         }
-        response = get_response_falabella(parameters, key).json()
+        response = get_response_falabella(parameters, key)
+        try:
+            response = response.json()
+        except:
+            return response.text
         response = response["SuccessResponse"]["Body"]["OrderItems"]["OrderItem"]
         if type(response) == list:
             tmp["Items"] = ", ".join(set([item["Name"] for item in response]))
@@ -236,8 +244,12 @@ def get_data_paris(key):
 
     headers = {"Content-Type": "application/json",
                "Authorization":f"Bearer {key}"}
-
-    message = requests.post(base_url+"/v1/auth/apiKey", headers=headers).json()
+    
+    message = requests.post(base_url+"/v1/auth/apiKey", headers=headers)
+    try:
+        message = message.json()
+    except:
+        return message.text
 
     # Guardamos el token en una variable para facilitar su acceso.
     token = message["accessToken"]
@@ -245,7 +257,11 @@ def get_data_paris(key):
     headers = {"Content-Type": "application/json",
                "Authorization":f"Bearer {token}"}
 
-    response = requests.get(base_url+"/v1/orders", headers=headers).json()
+    response = requests.get(base_url+"/v1/orders", headers=headers)
+    try:
+        response = response.json()
+    except:
+        return response.text
     customers = []
     for order in response["data"]:
         tmp = {}
@@ -281,7 +297,11 @@ def get_data_ripley(key):
     url = "https://ripley-prod.mirakl.net/api/orders"
     header = {"Authorization": key}
     # Retrieve data
-    message = requests.get(url, headers= header).json()
+    message = requests.get(url, headers= header)
+    try:
+        message = message.json()
+    except:
+        message.text
     customers = []
     for order in  message["orders"]:
         tmp = {}
