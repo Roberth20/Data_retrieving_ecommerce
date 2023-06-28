@@ -186,7 +186,10 @@ def update_products():
             'Authorization': f'Bearer {token}'
     }
     # Get data
-    response = requests.request("GET", url, headers=headers).json()
+    try:
+        response = requests.request("GET", url, headers=headers).json()
+    except:
+        return "Hubo un error.\n" + requests.request("GET", url, headers=headers).text
     # Obtenemos dos grupos de atributos, lo separamos
     att = response["customAttributes"]
     att_std = ["Season", "model", "description", "htmlDescription", "shortDescription",
@@ -197,7 +200,7 @@ def update_products():
     att_short_names = [item["name"] for item in att]
 
     # Obtenemos la lista de todos los productos.
-    app.logger.info("Solicitando productos")
+    current_app.logger.info("Solicitando productos")
     url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/products/light/p/1"
     response = requests.request("GET", url, headers=headers).json()
     data = response["entries"]
@@ -212,7 +215,7 @@ def update_products():
     ids = [item["_id"] for item in data]
 
     # Para cada producto, guardamos sus atributos
-    app.logger.info("Solicitando atributos de productos.")
+    current_app.logger.info("Solicitando atributos de productos.")
     data = []
     for i in ids:
         url = f"https://app.multivende.com/api/products/{i}?_include_product_picture=true"
@@ -220,7 +223,7 @@ def update_products():
         data.append(response)
 
     # Dentro de los atributos normales, extraemos los atributos hechos por el usuario
-    app.logger.info("Procesando atributos personales")
+    current_app.logger.info("Procesando atributos personales")
     customs = []
     for d in data:
         tmp_dict = {}
@@ -240,7 +243,7 @@ def update_products():
         info.append(data[i] | customs[i])
 
     # Hay atributos estandar que tienen informacion anidada, extraemos la misma
-    app.logger.info("Procesando atributos estandar")
+    current_app.logger.info("Procesando atributos estandar")
     all_data = []
     for i in info:
         sku = i["code"]
@@ -338,9 +341,12 @@ def update_products():
 @auth_required("basic")
 def clients_data():
     # Retrieve data from the available marketplaces
-    fl_customers = get_data_falabella(current_app.config["FALABELLA_USER"], current_app.config["FALABELLA_API_KEY"])
-    pr_customers = get_data_paris(current_app.config["PARIS_API_KEY"])
-    rp_customers = get_data_ripley(current_app.config["RIPLEY_API_KEY"])
+    try:
+        fl_customers = get_data_falabella(current_app.config["FALABELLA_USER"], current_app.config["FALABELLA_API_KEY"])
+        pr_customers = get_data_paris(current_app.config["PARIS_API_KEY"])
+        rp_customers = get_data_ripley(current_app.config["RIPLEY_API_KEY"])
+    except Exception as e:
+        return "Hubo un problema\n"+str(e)
     
     data = pd.concat([pr_customers, fl_customers, rp_customers], axis=0)
     data.reset_index(drop=True, inplace=True)
