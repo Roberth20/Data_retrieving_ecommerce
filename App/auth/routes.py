@@ -43,6 +43,6 @@ def main_auth():
             return render_template("auth/success.html")
         except Exception as e:
             current_app.logger.error("Error en la autenticacion")
-            return render_template("auth/error.html", message=e+response.text)
+            return render_template("auth/error.html", message=str(e)+response.text)
     
     return render_template("auth/main.html")
