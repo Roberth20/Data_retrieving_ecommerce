@@ -42,7 +42,7 @@ def main_auth():
             db.session.commit()
             return render_template("auth/success.html")
         except Exception as e:
-            app.logger.error("Error en la autenticacion")
+            current_app.logger.error("Error en la autenticacion")
             return render_template("auth/error.html", message=e)
     
     return render_template("auth/main.html")
