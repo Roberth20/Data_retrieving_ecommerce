@@ -126,17 +126,6 @@ def send_form():
                 "_id": color,
                 "name": p["color"]
               },
-              "InventoryType": {
-                "_id": "791a6654-c5f2-11e6-aad6-2c56dc130c0d",
-                "name": "INVENTORY_TYPES.Normal.Name",
-                "code": "_normal_inventory_type",
-                "description": "INVENTORY_TYPES.Normal.Description",
-                "position": 0,
-                "tags": "NULL",
-                "status": "waiting-for-creation",
-                "createdAt": None,
-                "updatedAt": None
-              },
               "CustomAttributeValues": custom_v,
               #"allImages": [],
               "InventoryTypeId": "791a6654-c5f2-11e6-aad6-2c56dc130c0d"
@@ -154,7 +143,6 @@ def send_form():
           "WarrantyId": warranty,
           "ShippingClassId": None,
         "CustomAttributeValues": custom_p,
-          "OfficialStoreId": None,
           "InventoryTypeId": "791a6654-c5f2-11e6-aad6-2c56dc130c0d",
           "InternalCodeTypeId": None,
           "status": "waiting-for-creation"
