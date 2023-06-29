@@ -51,7 +51,7 @@ def upload_data_products(df, db):
     df.drop(df.columns[df.columns.str.contains("Material del trípode")][1], axis=1, inplace=True)
     df.drop("Número de focos-Ripley Productos", axis=1, inplace=True)
 
-    std = df.columns[:22]
+    std = df.columns[:21]
     mlc = df.columns[df.columns.str.contains("Mercado Libre")]
     fl = df.columns[df.columns.str.contains("Falabella")]
     rp = df.columns[df.columns.str.contains("Ripley")]
