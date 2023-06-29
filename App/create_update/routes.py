@@ -152,6 +152,14 @@ def send_form():
           'Content-Type': 'application/json',
           'Authorization': f'Bearer {token}'
         }
+        url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/products"
+        current_app.logger.info("Sending request POST to update products at Multivende")
+        response = requests.request("POST", url, headers=headers, data=payload)
+        req = response.request
+        headers = ['"{0}: {1}"'.format(k, v) for k, v in req.headers.items()]
+        headers = " -H ".join(headers)
+        message = f"curl -X {req.method} -H {headers} -d '{req.body}' '{req.url}'"
+        return render_template("create_update/error.html", message=message)
         
         # Sending request 
         #url = f"https://app.multivende.com/api/products/{p.name[0]}" UPDATE
