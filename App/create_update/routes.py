@@ -164,9 +164,11 @@ def send_form():
         }
         
         # Sending request 
-        url = f"https://app.multivende.com/api/products/{p.name[0]}"
+        #url = f"https://app.multivende.com/api/products/{p.name[0]}" UPDATE
+        url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/products/{p.name[0]}"
         current_app.logger.info("Sending request PUT to update products at Multivende")
-        response = requests.request("PUT", url, headers=headers, data=payload)
+        #response = requests.request("PUT", url, headers=headers, data=payload) UPDATE
+        response = requests.request("POST", url, headers=headers, data=payload)
         
         # Check there was an error and abort sending data
         if response.status_code != 201:
