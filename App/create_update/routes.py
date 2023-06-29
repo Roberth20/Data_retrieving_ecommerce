@@ -18,6 +18,7 @@ from App.auth.funcs import decrypt
 import requests
 import pandas as pd
 import numpy as np
+import json
 
 # Landing page for the upload
 @cupdate.get("/")
