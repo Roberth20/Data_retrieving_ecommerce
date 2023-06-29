@@ -165,7 +165,7 @@ def send_form():
         
         # Sending request 
         #url = f"https://app.multivende.com/api/products/{p.name[0]}" UPDATE
-        url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/products/{p.name[0]}"
+        url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/products"
         current_app.logger.info("Sending request PUT to update products at Multivende")
         #response = requests.request("PUT", url, headers=headers, data=payload) UPDATE
         response = requests.request("POST", url, headers=headers, data=payload)
