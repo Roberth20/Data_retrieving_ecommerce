@@ -4,7 +4,7 @@ enviados a Multivende"""
 import numpy as np
 import pandas as pd
 
-def get_serialized_data(p, customs_data):
+def get_serialized_data(p, customs_data, std):
     """Funcion para transformacion de datos en formato apto para
     ser enviado como JSON
     
@@ -22,6 +22,8 @@ def get_serialized_data(p, customs_data):
     
       *  custom_v : dict. Informacion ajustada relacionada a la version del 
     producto.
+    
+      *  std : array-like. Atributos estandar de los productos.
     """
     # Preparing data
     p = p.fillna(np.nan)

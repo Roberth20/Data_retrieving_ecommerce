@@ -67,7 +67,7 @@ def send_form():
         
         # Get data in better format to work
         current_app.logger.info("Preparing data to send json of products")
-        custom_p, custom_v = get_serialized_data(p, customs_data)
+        custom_p, custom_v = get_serialized_data(p, customs_data, std)
         
         # Preparing all info to be inserted in the upload template
         tags = []
