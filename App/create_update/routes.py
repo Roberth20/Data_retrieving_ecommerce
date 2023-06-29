@@ -133,7 +133,7 @@ def send_form():
                 "description": "INVENTORY_TYPES.Normal.Description",
                 "position": 0,
                 "tags": "NULL",
-                "status": "created",
+                "status": "waiting-for-creation",
                 "createdAt": None,
                 "updatedAt": None
               },
@@ -156,7 +156,8 @@ def send_form():
         "CustomAttributeValues": custom_p,
           "OfficialStoreId": None,
           "InventoryTypeId": "791a6654-c5f2-11e6-aad6-2c56dc130c0d",
-          "InternalCodeTypeId": None
+          "InternalCodeTypeId": None,
+          "status": "waiting-for-creation"
         })
         headers = {
           'Content-Type': 'application/json',
