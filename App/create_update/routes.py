@@ -96,53 +96,54 @@ def send_form():
         # Inserting data in the template
         payload = json.dumps({
           "name": p["name"],
-          "alias": None,
-          "BrandId": brand,
+          "alias": p["name"],
+          #"BrandId": brand,
           "model": p["model"],
-          "SeasonId": None, # All are None
+          #"SeasonId": None, # All are None
           "description": p["description"],
           "ProductVersions": [
             {
-              "_id": p.name[1],
+              #"_id": p.name[1],
               "code": p["sku"],
-              "SizeId": size,
-              "ColorId": color,
+              #"SizeId": size,
+              #"ColorId": color,
               "status": "waitingfor-creation",
-              "internalCode": p["internalSku"],
-              "CodeTypeId": None,
-              "InternalCodeTypeId": None,
+              #"internalCode": p["internalSku"],
+              #"CodeTypeId": None,
+              #"InternalCodeTypeId": None,
               "position": 0,
               "width": p["width"],
               "length": p["length"],
               "height": p["height"],
               "weight": p["weight"],
-              "Size": {
-                "_id": size,
-                "name": p["size"]
-              },
+              #"Size": {
+               # "_id": size,
+                #"name": p["size"]
+              #},
               "CodeType": None,
               "InternalCodeType": None,
-              "Color": {
-                "_id": color,
-                "name": p["color"]
-              },
+              #"Color": {
+               # "_id": color,
+                #"name": p["color"]
+              #},
               "CustomAttributeValues": custom_v,
               #"allImages": [],
-              "InventoryTypeId": "791a6654-c5f2-11e6-aad6-2c56dc130c0d"
+              "InventoryTypeId": "791a6654-c5f2-11e6-aad6-2c56dc130c0d",
+              "isDefaultVerson":True
             },
           ],
-          "ProductCategoryId": productCategory,
+          #"ProductCategoryId": productCategory,
           "code": p["sku_name"],
-          "internalCode": None,
-          "CodeTypeId": None,
+          #"internalCode": None,
+          #"CodeTypeId": None,
           "shortDescription": p["shortDescription"],
           "htmlDescription": p["htmlDescription"],
           "htmlShortDescription": p["htmlShortDescription"],
         ###### Tags son solo uno o ninguno en todos los productos
-          "tags": tags,
-          "WarrantyId": warranty,
-          "ShippingClassId": None,
-        "CustomAttributeValues": custom_p,
+          #"tags": tags,
+          #"WarrantyId": warranty,
+          #"ShippingClassId": None,
+          "CustomAttributeValues": custom_p,
           "InventoryTypeId": "791a6654-c5f2-11e6-aad6-2c56dc130c0d",
           "InternalCodeTypeId": None,
           "status": "waiting-for-creation"
