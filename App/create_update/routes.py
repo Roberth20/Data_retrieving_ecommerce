@@ -107,7 +107,7 @@ def send_form():
               "code": p["sku"],
               #"SizeId": size,
               #"ColorId": color,
-              "status": "waitingfor-creation",
+              "status": "waiting-for-creation",
               #"internalCode": p["internalSku"],
               #"CodeTypeId": None,
               #"InternalCodeTypeId": None,

@@ -119,7 +119,7 @@ def check_difference_and_update_checkouts(data, checkouts, db):
                                                           checkouts.id_hijo_producto == row["id hijo producto"]))
         # Add the new checkout to the DB
         if result == None:
-            venta = checkouts(cantidad = row["cantidad"], codigo_producto = ["codigo producto"],
+            venta = checkouts(cantidad = row["cantidad"], codigo_producto = row["codigo producto"],
                          costo_envio = row["costo de envio"], estado_boleta = row["estado boleta"],
                          estado_entrega = row["estado entrega"], estado_venta = row["estado venta"],
                          fecha = row["fecha"], id_venta = row["id"], id_hijo_producto = row["id hijo producto"],
@@ -135,7 +135,7 @@ def check_difference_and_update_checkouts(data, checkouts, db):
                 db.update(checkouts)
                 .where(checkouts.id_venta == row["id"] and 
                        checkouts.id_hijo_producto == row["id hijo producto"])
-                .values(cantidad = row["cantidad"], codigo_producto = ["codigo producto"],
+                .values(cantidad = row["cantidad"], codigo_producto = row["codigo producto"],
                          costo_envio = row["costo de envio"], estado_boleta = row["estado boleta"],
                          estado_entrega = row["estado entrega"], estado_venta = row["estado venta"],
                          fecha = row["fecha"], id_venta = row["id"], id_hijo_producto = row["id hijo producto"],
@@ -146,6 +146,52 @@ def check_difference_and_update_checkouts(data, checkouts, db):
                          url_boleta = row["url boleta"])
             )
             db.session.execute(stmt)
+    db.session.commit()
+    
+def check_diferences_and_update_deliverys(data, deliverys, db):
+     """Funcion para actualizacion de despachos.
+    
+    Input : 
+    ---------
+      *  data : pandas.DataFrame. Tablas de datos con las entregas a actualizar.
+      
+      *  checkouts : SQLAlchemy.Model. Objeto con el metadata de la tabla correspondiente a las 
+      entregas. Ver App/models/*.py para mas detalle sobre los modelos definidos..
+      
+      *  db : flask_sqlalchemy.SQLAlchemy. Instancia representativa de la base de datos. 
+      
+    Output :
+    ---------
+      * None.
+    """
+    # Check if the delivery is in the DB
+    for i, row in data.iterrows():
+        result = db.session.scalar(db.select(deliverys).where(deliverys.id_venta == row["id venta"] and 
+                                                          deliverys.n_venta == row["n venta"])
+        # Add the new delivery to the DB
+        if result == None:
+            delivery = deliverys(n_seguimiento = row["N seguimiento"], codigo = row["codigo"],
+                         codigo_venta = row["codigo venta"], courier = row["courier"],
+                         delivery_status = row["delivery status"], direccion = row["direccion"],
+                         impresion_etiqueta = row["etado impresion etiqueta"], fecha_despacho = row["fecha despacho"],
+                         fecha_promesa = row["fecha promesa"], id_venta = row["id venta"], 
+                         status_etiqueta = row["status etiqueta"], n_venta = row["n venta"])
+            db.session.add(delivery)
+        # update old values                         
+        else:
+            stmt = (
+                db.update(deliverys)
+                .where(deliverys.id_venta == row["id venta"] and 
+                       deliverys.n_venta == row["n venta"])
+                .values(n_seguimiento = row["N seguimiento"], codigo = row["codigo"],
+                         codigo_venta = row["codigo venta"], courier = row["courier"],
+                         delivery_status = row["delivery status"], direccion = row["direccion"],
+                         impresion_etiqueta = row["etado impresion etiqueta"], fecha_despacho = row["fecha despacho"],
+                         fecha_promesa = row["fecha promesa"], id_venta = row["id venta"], 
+                         status_etiqueta = row["status etiqueta"], n_venta = row["n venta"])
+            )
+            db.session.execute(stmt)            
+    
     db.session.commit()
             
 def get_data_falabella(userId, key):
