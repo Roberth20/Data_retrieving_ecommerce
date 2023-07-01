@@ -154,23 +154,17 @@ def send_form():
         }
         url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/products"
         current_app.logger.info("Sending request POST to update products at Multivende")
-        response = requests.request("POST", url, headers=headers, data=payload)
-        req = response.request
-        headers = ['"{0}: {1}"'.format(k, v) for k, v in req.headers.items()]
-        headers = " -H ".join(headers)
-        message = f"curl -X {req.method} -H {headers} -d '{req.body}' '{req.url}'"
-        return render_template("create_update/error.html", message=message)
-        
+        #response = requests.request("POST", url, headers=headers, data=payload)
         # Sending request 
         #url = f"https://app.multivende.com/api/products/{p.name[0]}" UPDATE
-        url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/products"
-        current_app.logger.info("Sending request PUT to update products at Multivende")
+        #url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/products"
+        #current_app.logger.info("Sending request PUT to update products at Multivende")
         #response = requests.request("PUT", url, headers=headers, data=payload) UPDATE
         response = requests.request("POST", url, headers=headers, data=payload)
         
         # Check there was an error and abort sending data
-        #if response.status_code != 201:
-         #   current_app.logger.error(f"Aborting sending data for reason: {response.reason}")
+        if response.status_code != 201:
+            current_app.logger.error(f"Aborting sending data for reason: {response.reason}")
         message = response.reason + " " + response.text
         return render_template("create_update/error.html", message=message)
         
