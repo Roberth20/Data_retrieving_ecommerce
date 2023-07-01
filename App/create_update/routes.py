@@ -30,6 +30,7 @@ def confirmation():
 @cupdate.get("/send")
 @auth_required("basic")
 def send_form():
+    return "Under test"
     # Get the last token info registed on the DB
     current_app.logger.info("Retrieving Token")
     last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
@@ -107,7 +108,7 @@ def send_form():
               "code": p["sku"],
               #"SizeId": size,
               #"ColorId": color,
-              "status": "waiting-for-creation",
+              "status": "created",
               #"internalCode": p["internalSku"],
               #"CodeTypeId": None,
               #"InternalCodeTypeId": None,
@@ -146,21 +147,20 @@ def send_form():
           #"CustomAttributeValues": custom_p,
           "InventoryTypeId": "791a6654-c5f2-11e6-aad6-2c56dc130c0d",
           "InternalCodeTypeId": None,
-          "status": "waiting-for-creation"
+          "status": "created"
         })
         headers = {
           'Content-Type': 'application/json',
           'Authorization': f'Bearer {token}'
         }
-        url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/products"
-        current_app.logger.info("Sending request POST to update products at Multivende")
-        #response = requests.request("POST", url, headers=headers, data=payload)
+
         # Sending request 
-        #url = f"https://app.multivende.com/api/products/{p.name[0]}" UPDATE
-        #url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/products"
-        #current_app.logger.info("Sending request PUT to update products at Multivende")
-        #response = requests.request("PUT", url, headers=headers, data=payload) UPDATE
-        response = requests.request("POST", url, headers=headers, data=payload)
+        url = f"https://app.multivende.com/api/products/{p.name[0]}" # UPDATE
+        #url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/products" # CREATE 
+        #current_app.logger.info("Sending request POST to update products at Multivende") 
+        current_app.logger.info("Sending request PUT to update products at Multivende")
+        response = requests.request("PUT", url, headers=headers, data=payload) # UPDATE
+        #response = requests.request("POST", url, headers=headers, data=payload)
         
         # Check there was an error and abort sending data
         if response.status_code != 201:
