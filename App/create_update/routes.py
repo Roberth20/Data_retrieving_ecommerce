@@ -126,7 +126,7 @@ def send_form():
                # "_id": color,
                 #"name": p["color"]
               #},
-              "CustomAttributeValues": custom_v,
+              #"CustomAttributeValues": custom_v,
               #"allImages": [],
               "InventoryTypeId": "791a6654-c5f2-11e6-aad6-2c56dc130c0d",
               "isDefaultVerson":True
@@ -143,7 +143,7 @@ def send_form():
           #"tags": tags,
           #"WarrantyId": warranty,
           #"ShippingClassId": None,
-          "CustomAttributeValues": custom_p,
+          #"CustomAttributeValues": custom_p,
           "InventoryTypeId": "791a6654-c5f2-11e6-aad6-2c56dc130c0d",
           "InternalCodeTypeId": None,
           "status": "waiting-for-creation"
