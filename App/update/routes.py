@@ -528,8 +528,8 @@ def update_ventas():
                          columns = ["id", "n venta"])
     # Add n venta to df
     for i in df.index:
-    if (ventas["id"] == df.loc[i, "id venta"]).any():
-        df.loc[i, "n venta"] = ventas["n venta"][ventas["id"] == df.loc[i, "id venta"]].values[0]
+        if (ventas["id"] == df.loc[i, "id venta"]).any():
+            df.loc[i, "n venta"] = ventas["n venta"][ventas["id"] == df.loc[i, "id venta"]].values[0]
     
     # Fill empty values with None
     df = df.replace({np.NaN: None})
