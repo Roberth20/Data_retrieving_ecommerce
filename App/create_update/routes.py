@@ -92,7 +92,7 @@ def send_form():
         color = None
         if pd.notna(p["color"]):
             color =  id_data["id"][id_data["name"] == p["color"]].values[0]
-        
+        p = p.where(p.notna(), None)
         # Inserting data in the template
         payload = json.dumps({
           "name": p["name"],
