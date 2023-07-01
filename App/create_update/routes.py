@@ -163,10 +163,10 @@ def send_form():
         response = requests.request("POST", url, headers=headers, data=payload)
         
         # Check there was an error and abort sending data
-        if response.reason != "Created":
+        if response.status_code != 201:
             current_app.logger.error(f"Aborting sending data for reason: {response.reason}")
-        message = response.reason + " " + str(response.status_code) + " " + response.text
-        return render_template("create_update/error.html", message=message)
+            message = response.reason + " " + str(response.status_code) + " " + response.text
+            return render_template("create_update/error.html", message=message)
         
         message = p["name"] + " OK"
     
