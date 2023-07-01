@@ -47,5 +47,5 @@ def test():
             'Authorization': f'Bearer {token}'
     }
     url = f"https://app.multivende.com/api/d/info"
-    response = requests("GET", url=url, headers=headers)
+    response = requests.request("GET", url=url, headers=headers)
     return response.text
