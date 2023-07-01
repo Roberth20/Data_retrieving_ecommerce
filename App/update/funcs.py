@@ -149,7 +149,7 @@ def check_difference_and_update_checkouts(data, checkouts, db):
     db.session.commit()
     
 def check_diferences_and_update_deliverys(data, deliverys, db):
-     """Funcion para actualizacion de despachos.
+    """Funcion para actualizacion de despachos.
     
     Input : 
     ---------
@@ -167,7 +167,7 @@ def check_diferences_and_update_deliverys(data, deliverys, db):
     # Check if the delivery is in the DB
     for i, row in data.iterrows():
         result = db.session.scalar(db.select(deliverys).where(deliverys.id_venta == row["id venta"] and 
-                                                          deliverys.n_venta == row["n venta"])
+                                                          deliverys.n_venta == row["n venta"]))
         # Add the new delivery to the DB
         if result == None:
             delivery = deliverys(n_seguimiento = row["N seguimiento"], codigo = row["codigo"],
