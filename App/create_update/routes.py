@@ -165,7 +165,7 @@ def send_form():
         # Check there was an error and abort sending data
         if response.status_code != 201:
             current_app.logger.error(f"Aborting sending data for reason: {response.reason}")
-            message = response.reason + " " + p["name"] + " " + response.text
+            message = response.reason + " " + p["name"] + " " + response.text + " " + response.request.body
             return render_template("create_update/error.html", message=message)
         
         message = p["name"] + " OK"
