@@ -188,10 +188,11 @@ def update_products():
             'Authorization': f'Bearer {token}'
     }
     # Get data
+    response = requests.request("GET", url, headers=headers)
     try:
-        response = requests.request("GET", url, headers=headers).json()
+        response = response.json()
     except:
-        return "Hubo un error.\n" + requests.request("GET", url, headers=headers).text
+        return "Hubo un error.\n" + response.text
     # Obtenemos dos grupos de atributos, lo separamos
     att = response["customAttributes"]
     att_std = ["Season", "model", "description", "htmlDescription", "shortDescription",
@@ -392,7 +393,11 @@ def update_checkouts():
             'Authorization': f'Bearer {token}'
     }
     # Get data
-    response = requests.request("GET", url, headers=headers).json()
+    response = requests.request("GET", url, headers=headers)
+    try:
+        response = response.json()
+    except:
+        return "Error" + response.text
     
     pages = response["pagination"]["total_pages"]
     ids= []
@@ -483,7 +488,11 @@ def update_ventas():
             'Authorization': f'Bearer {token}'
         }
     current_app.logger.info("Solicitando ids de marketplaces connections")
-    response = requests.request("GET", url, headers=headers).json()
+    response = requests.request("GET", url, headers=headers)
+    try:
+        response = response.json()
+    except:
+        return "Error" + response.text
     data=[]
     now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
     for conn in response["entries"]:
