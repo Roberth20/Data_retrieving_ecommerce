@@ -6,7 +6,7 @@ from App.models.auth import auth_app
 from App.extensions.db import db
 from datetime import datetime
 from App.auth.funcs import decrypt
-import request
+import requests
 
 @bp.route("/")
 def index():
@@ -47,5 +47,5 @@ def test():
             'Authorization': f'Bearer {token}'
     }
     url = f"https://app.multivende.com/api/d/info"
-    response = request("GET", url=url, headers=headers)
+    response = requests("GET", url=url, headers=headers)
     return response.text
