@@ -115,6 +115,8 @@ def check_difference_and_update_checkouts(data, checkouts, db):
     """
     # Check if the checkout is in the DB
     for i, row in data.iterrows():
+        if row["nombre"] == None:
+            continue
         result = db.session.scalar(db.select(checkouts).where(checkouts.id_venta == row["id"] and 
                                                           checkouts.id_hijo_producto == row["id hijo producto"]))
         # Add the new checkout to the DB

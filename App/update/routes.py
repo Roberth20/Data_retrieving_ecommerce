@@ -317,6 +317,8 @@ def update_products():
     # Limpiamos columnas duplicadas
     df.drop(columns = df.columns[df.columns.duplicated()], inplace =True)
     data = get_products()
+    #print(df.columns.isin(data.columns))
+    df = df[df.columns[df.columns.isin(data.columns)]]
     diff = df[~df.isin(data)].dropna(how="all")
     if diff.shape[0] == 0:
         return render_template("update/products.html")
