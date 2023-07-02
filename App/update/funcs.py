@@ -114,7 +114,9 @@ def check_difference_and_update_checkouts(data, checkouts, db):
       * None.
     """
     # Check if the checkout is in the DB
+    s = data.shape[0]
     for i, row in data.iterrows():
+        print(f"Working on upload to db... {i}/{s}")
         if row["nombre"] == None:
             continue
         result = db.session.scalar(db.select(checkouts).where(checkouts.id_venta == row["id"] and 
@@ -167,7 +169,9 @@ def check_diferences_and_update_deliverys(data, deliverys, db):
       * None.
     """
     # Check if the delivery is in the DB
+    s = data.shape[0]
     for i, row in data.iterrows():
+        print(f"Uploading deliverys to db... {i}/{s}")
         result = db.session.scalar(db.select(deliverys).where(deliverys.id_venta == row["id venta"] and 
                                                           deliverys.n_venta == row["n venta"]))
         # Add the new delivery to the DB
@@ -175,7 +179,7 @@ def check_diferences_and_update_deliverys(data, deliverys, db):
             delivery = deliverys(n_seguimiento = row["N seguimiento"], codigo = row["codigo"],
                          codigo_venta = row["codigo venta"], courier = row["courier"],
                          delivery_status = row["delivery status"], direccion = row["direccion"],
-                         impresion_etiqueta = row["etado impresion etiqueta"], fecha_despacho = row["fecha despacho"],
+                         impresion_etiqueta = row["estado impresion etiqueta"], fecha_despacho = row["fecha despacho"],
                          fecha_promesa = row["fecha promesa"], id_venta = row["id venta"], 
                          status_etiqueta = row["status etiqueta"], n_venta = row["n venta"])
             db.session.add(delivery)
@@ -188,7 +192,7 @@ def check_diferences_and_update_deliverys(data, deliverys, db):
                 .values(n_seguimiento = row["N seguimiento"], codigo = row["codigo"],
                          codigo_venta = row["codigo venta"], courier = row["courier"],
                          delivery_status = row["delivery status"], direccion = row["direccion"],
-                         impresion_etiqueta = row["etado impresion etiqueta"], fecha_despacho = row["fecha despacho"],
+                         impresion_etiqueta = row["estado impresion etiqueta"], fecha_despacho = row["fecha despacho"],
                          fecha_promesa = row["fecha promesa"], id_venta = row["id venta"], 
                          status_etiqueta = row["status etiqueta"], n_venta = row["n venta"])
             )

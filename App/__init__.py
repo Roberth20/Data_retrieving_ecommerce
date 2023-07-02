@@ -46,4 +46,34 @@ def create_app(test_config=False):
     
     from App.create_update import cupdate
     app.register_blueprint(cupdate, url_prefix="/create_update")
+    
+    from App.SQS import sqs
+    app.register_blueprint(sqs, url_prefix="/sqs")
+    
+    return app
+
+from App.extensions import celery
+
+# Imported for type hinting
+from flask import Flask
+from celery import Celery
+
+
+def configure_celery(app: Flask) -> Celery:
+    """Configure celery instance using config from Flask app"""
+    TaskBase = celery.celery.Task
+    class ContextTask(TaskBase):
+        abstract = True
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return TaskBase.__call__(self, *args, **kwargs)
+    celery.celery.conf.update(app.config)
+    celery.celery.conf.update(broker_url = app.config["CELERY_BROKER_URL"])
+    celery.celery.Task = ContextTask
+    
+    return celery.celery
+
+def create_full_app(test_config=False) -> Flask:
+    app: Flask = create_app(test_config)
+    cel_app: Celery = configure_celery(app)
     return app

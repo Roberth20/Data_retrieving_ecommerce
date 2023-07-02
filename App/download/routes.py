@@ -209,7 +209,7 @@ def download_checkouts():
                                   c.n_venta, c.nombre_cliente, c.nombre_producto,
                                   c.phone, c.precio, c.url_boleta] for c in checkouts.query.all()], 
                                  columns = ["cantidad", "codigo producto", "costo envio", "estado boleta",
-                                           "estado entrega", "estado venta", "fecha", "id hijo producto",
+                                           "estado entrega", "estado venta", "fecha", "id venta", "id hijo producto",
                                            "id padre producto", "mail", "market", "numero venta", 
                                             "nombre cliente", "nombre producto", "telefono", "precio",
                                            "url boleta"])

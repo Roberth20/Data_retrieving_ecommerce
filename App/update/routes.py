@@ -380,7 +380,6 @@ def update_checkouts():
     last_update = result.fecha - timedelta(days=28) # One month before to update changes of recents sells
     now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
     last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
-    url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/checkouts/light/p/1?_updated_at_from={last}&_updated_at_to={now}"
     last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
     # Check if token exists
     if last_auth == None:
@@ -391,76 +390,10 @@ def update_checkouts():
         return render_template("update/token_error.html")
     # Decrypt token
     token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
-    headers = {
-            'Authorization': f'Bearer {token}'
-    }
-    # Get data
-    response = requests.request("GET", url, headers=headers)
-    try:
-        response = response.json()
-    except:
-        return "Error" + response.text
     
-    pages = response["pagination"]["total_pages"]
-    ids= []
-    # First all ids
-    for p in range(0, pages):
-        url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/checkouts/light/p/{p+1}?_updated_at_from={last}&_updated_at_to={now}"
-        data = requests.get(url, headers=headers).json()
-        for d in data["entries"]:
-            ids.append(d["_id"])
+    from App.task.long_task import update_checkouts
     
-    # Now the information completed
-    ventas = []
-    for id in ids:
-        tmp = {}
-        url = f"https://app.multivende.com/api/checkouts/{id}"
-        checkout = requests.get(url, headers=headers).json()
-        tmp["fecha"] = checkout["soldAt"]
-        tmp["nombre"] = checkout["Client"]["fullName"]
-        tmp["n venta"] = checkout["CheckoutLink"]["externalOrderNumber"] # Numero de orden en marketplace
-        tmp["id"] = checkout["CheckoutLink"]["CheckoutId"] # Codigo en multivende
-        tmp["estado entrega"] = checkout["deliveryStatus"]
-        tmp["costo de envio"] = checkout["DeliveryOrderInCheckouts"][0]["DeliveryOrder"]["cost"]
-        tmp["market"] = checkout["origin"]
-        tmp["mail"] = checkout["Client"]["email"]
-        tmp["phone"] = checkout["Client"]["phoneNumber"]
-        # Try to find the billing files
-        try:
-            url = f"https://app.multivende.com/api/checkouts/{id}/electronic-billing-documents/p/1"
-            billing = requests.get(url, headers=headers).json()
-            tmp["estado boleta"] = billing["entries"][-1]["ElectronicBillingDocumentFiles"][-1]["synchronizationStatus"]
-            tmp["url boleta"] = billing["entries"][-1]["ElectronicBillingDocumentFiles"][-1]["url"]
-        except:
-            tmp["estado boleta"] = None
-            tmp["url boleta"] = None
-        
-        # Getting all status of ventas
-        tmp["estado venta"] = []
-        for status in checkout["CheckoutPayments"]:
-            tmp["estado venta"].append(status["paymentStatus"])
-        # For each item we split the checkout
-        for product in checkout["CheckoutItems"]:
-            item = tmp.copy()
-            item["codigo producto"] = product["code"]
-            item["nombre producto"] = product["ProductVersion"]["Product"]["name"]
-            item["id padre producto"] = product["ProductVersion"]["ProductId"]
-            item["id hijo producto"] = product["ProductVersionId"]
-            item["cantidad"] = product["count"]
-            item["precio"] = product["gross"]
-            ventas.append(item)
-
-    # Load data to be processed
-    df = pd.DataFrame(ventas)
-    df["fecha"] = pd.to_datetime(df["fecha"])
-    df["fecha"] = df["fecha"].dt.tz_convert(None)
-    df= df.fillna(np.nan)
-    for i in df["estado venta"].index:
-        df.loc[i, "estado venta"] = df["estado venta"][i][-1]
-        
-    df = df.where(df.notna(), None)
-    
-    check_difference_and_update_checkouts(df, checkouts, db)
+    update_checkouts.delay(token, current_app.config['MERCHANT_ID'], last, now)
     
     return render_template("update/checkouts.html")
 
@@ -484,72 +417,9 @@ def update_ventas():
     now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
     last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
     
-    # Get marketplace connections
-    url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/marketplace-connections/p/1"
-    headers = {
-            'Authorization': f'Bearer {token}'
-        }
-    current_app.logger.info("Solicitando ids de marketplaces connections")
-    response = requests.request("GET", url, headers=headers)
-    try:
-        response = response.json()
-    except:
-        return "Error" + response.text
-    data=[]
-    now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
-    for conn in response["entries"]:
-        url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/delivery-orders/documents/p/1?_delivery_statuses=completed&_delivery_statuses=pending&_shipping_label_print_statuses=not_printed&_shipping_label_status=ready&include_only_delivery_order_with_traking_number=true&_marketplace_connection_id={conn['_id']}&_updated_at_from={last}&_updated_at_to={now}"
-        # Get shipping labels for connections
-        try:
-            info = requests.get(url, headers=headers).json()
-        except:
-            current_app.logger.info(f"No shipping labels from {requests.get(url, headers=headers).text}")
-            
-        if len(info["entries"]) > 0:
-            pages = info["pagination"]["total_pages"]
-            for p in range(0, pages):
-                url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/delivery-orders/documents/p/{p}?_delivery_statuses=completed&_delivery_statuses=pending&_shipping_label_print_statuses=not_printed&_shipping_label_status=ready&include_only_delivery_order_with_traking_number=true&_marketplace_connection_id={conn['_id']}&_updated_at_from={last}&_updated_at_to={now}"
-                entries = requests.get(url, headers=headers).json()
-                # Store important data
-                for entry in entries["entries"]:
-                    tmp = {}
-                    tmp["fecha promesa"] = entry["promisedDeliveryDate"]
-                    tmp["direccion"] = entry["deliveryAddress"]
-                    tmp["codigo"] = entry["code"]
-                    tmp["courier"] = entry["courierName"]
-                    tmp["fecha despacho"] = entry["handlingDateLimit"]
-                    tmp["delivery status"] = entry["deliveryStatus"]
-                    tmp["N seguimiento"] = entry["trackingNumber"]
-                    tmp["codigo venta"] = entry["DeliveryOrderInCheckouts"][0]["Checkout"]["code"]
-                    tmp["id venta"] = entry["DeliveryOrderInCheckouts"][0]["CheckoutId"]
-                    tmp["status etiqueta"] = entry["shippingLabelStatus"]
-                    #tmp["etado impresion etiqueta"] = entry["shippingLabelPrintStatus"]
-                    data.append(tmp)
+    from App.task.long_task import update_deliverys
     
-    # Create dataframe and adjust formats
-    df = pd.DataFrame(data)
-    df.fillna(np.nan, inplace=True)
-    df["fecha despacho"] = pd.to_datetime(df["fecha despacho"])
-    df["fecha despacho"] = df["fecha despacho"].dt.tz_convert(None)
-    df["fecha promesa"] = pd.to_datetime(df["fecha promesa"])
-    df["fecha promesa"] = df["fecha promesa"].dt.tz_convert(None)
-    
-    # Load data from checkouts
-    ventas = pd.DataFrame([[v.id_venta, v.n_venta] for v in checkouts.query.all()],
-                         columns = ["id", "n venta"])
-    # Add n venta to df
-    for i in df.index:
-        if (ventas["id"] == df.loc[i, "id venta"]).any():
-            df.loc[i, "n venta"] = ventas["n venta"][ventas["id"] == df.loc[i, "id venta"]].values[0]
-    
-    # Fill empty values with None
-    df = df.replace({np.NaN: None})
-    # Clear duplicated
-    df = df.drop_duplicates()
-    # Only store the items with n venta (a checkout registered)
-    df = df[df["n venta"].notna()]
-    
-    check_diferences_and_update_deliverys(df, deliverys, db)
+    update_deliverys.delay(token, current_app.config['MERCHANT_ID'], last, now)
     
     return render_template("update/delivery.html")
 
