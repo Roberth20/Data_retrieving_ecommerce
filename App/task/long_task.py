@@ -47,7 +47,7 @@ def update_deliverys(token, merchant_id, last, now):
             pages = info["pagination"]["total_pages"]
             for p in range(0, pages):
                 print(f"Working on update deliverys... page {p+1}/{pages}")
-                url = f"https://app.multivende.com/api/m/{merchant_id}/delivery-orders/documents/p/{p}?_delivery_statuses=completed&_delivery_statuses=pending&_shipping_label_print_statuses=not_printed&_shipping_label_status=ready&include_only_delivery_order_with_traking_number=true&_marketplace_connection_id={conn['_id']}&_updated_at_from={last}&_updated_at_to={now}"
+                url = f"https://app.multivende.com/api/m/{merchant_id}/delivery-orders/documents/p/{p+1}?_delivery_statuses=completed&_delivery_statuses=pending&_shipping_label_print_statuses=not_printed&_shipping_label_status=ready&include_only_delivery_order_with_traking_number=true&_marketplace_connection_id={conn['_id']}&_updated_at_from={last}&_updated_at_to={now}"
                 entries = requests.get(url, headers=headers).json()
                 # Store important data
                 l = len(entries["entries"])
