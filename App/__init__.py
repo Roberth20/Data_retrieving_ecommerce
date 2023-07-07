@@ -68,7 +68,9 @@ def configure_celery(app: Flask) -> Celery:
             with app.app_context():
                 return TaskBase.__call__(self, *args, **kwargs)
     celery.celery.conf.update(app.config)
-    celery.celery.conf.update(broker_url = app.config["CELERY_BROKER_URL"])
+    from kombu.utils.url import safequote
+    celery.celery.conf.update(broker_url = "sqs://",
+                              broker_transport_options = app.config["BROKER_TRANSPORT_OPTIONS"])
     celery.celery.Task = ContextTask
     
     return celery.celery
