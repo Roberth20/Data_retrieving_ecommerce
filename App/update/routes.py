@@ -11,8 +11,6 @@ from flask_security import auth_required
 from App.models.auth import auth_app
 from App.auth.funcs import decrypt
 from flask import current_app
-from App.models.productos import get_products
-from App.get_data.Populate_tables import upload_data_products
 from datetime import datetime, timedelta
 from App.models.clients import clients
 from App.models.ids import ids, customs_ids
@@ -172,7 +170,6 @@ def update_mapcat():
 @auth_required("basic")
 def update_products():
     # Get last token
-    url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/all-product-attributes"
     last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
     # Check if exists token
     if last_auth == None:
@@ -184,163 +181,12 @@ def update_products():
     
     # Decrypt token
     token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
-    headers = {
-            'Authorization': f'Bearer {token}'
-    }
-    # Get data
-    response = requests.request("GET", url, headers=headers)
-    try:
-        response = response.json()
-    except:
-        return "Hubo un error.\n" + response.text
-    # Obtenemos dos grupos de atributos, lo separamos
-    att = response["customAttributes"]
-    att_std = ["Season", "model", "description", "htmlDescription", "shortDescription",
-                "htmlShortDescription", "Warranty", "Brand", "name", "ProductCategory", "sku_name", "color",
-                "size", "sku", "internalSku", "width", "length", "height", "weight", "IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO", "tags", "picture"]
-    # Transformamos los nombres para mayor comodidad
-    att_names = [item["name"]+"-"+item["CustomAttributeSet.name"] for item in att]
-    att_short_names = [item["name"] for item in att]
-
-    # Obtenemos la lista de todos los productos.
-    current_app.logger.info("Solicitando productos")
-    url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/products/light/p/1"
-    response = requests.request("GET", url, headers=headers).json()
-    data = response["entries"]
-    pages = response["pagination"]["total_pages"]
-    # Los productos se organizan en paginas, pasamos por todas, guardando los resultados
-    for p in range(pages-1):
-        url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/products/light/p/{p+2}"
-        response = requests.request("GET", url, headers=headers).json()
-        data += response["entries"]
-
-    # Extraemos los id de cada uno
-    ids = [item["_id"] for item in data]
-
-    # Para cada producto, guardamos sus atributos
-    current_app.logger.info("Solicitando atributos de productos.")
-    data = []
-    for i in ids:
-        url = f"https://app.multivende.com/api/products/{i}?_include_product_picture=true"
-        response = requests.request("GET", url, headers=headers).json()
-        data.append(response)
-
-    # Dentro de los atributos normales, extraemos los atributos hechos por el usuario
-    current_app.logger.info("Procesando atributos personales")
-    customs = []
-    for d in data:
-        tmp_dict = {}
-        for at in d["CustomAttributeValues"]:
-            tmp_dict[at["CustomAttribute"]["name"]] =  at["text"]
-
-        tmp_dict["tags"] = []
-        for tag in d["ProductTags"]:
-            tmp_dict["tags"].append(tag["Tag"]["name"])
-
-        customs.append(tmp_dict)
-        d.pop("CustomAttributeValues")
-
-    # Unimos cada conjunto de atributos con sus custom atributos
-    info = []
-    for i in range(len(data)):
-        info.append(data[i] | customs[i])
-
-    # Hay atributos estandar que tienen informacion anidada, extraemos la misma
-    current_app.logger.info("Procesando atributos estandar")
-    all_data = []
-    for i in info:
-        sku = i["code"]
-        i["sku_name"] = sku
-        i["IDENTIFICADOR_PADRE"] = i["_id"]
-        # Cuando el atributo no tiene valor, no posee informacion anidada
-        # evitamos errores tomando este aspecto en consideracion
-        try:
-            brand = i["Brand"]["name"]
-        except:
-            brand = None
-        i["Brand"] = brand
-        try:
-            cat = i["ProductCategory"]["name"]
-        except:
-            cat = None
-        i["ProductCategory"] = cat
-        try:
-            war = i["Warranty"]["name"]
-        except:
-            war = None
-        i["Warranty"] = war
-        try:
-            tag = i["ProductTags"][0]["Tag"]["name"]
-        except:
-            tag = None
-        i["tags"] = tag
-        try:
-            picture = i["ProductPictures"][0]["url"]
-        except:
-            picture = None
-        i["picture url"] = picture
-        # Extraemos la misma informacion para cada version de producto
-        for pv in i["ProductVersions"]:
-            j = i.copy()
-            tmp_dict = {}
-            for at in pv["CustomAttributeValues"]:
-                tmp_dict[at["CustomAttribute"]["name"]] =  at["text"]
-            pv.pop("CustomAttributeValues")
-            j = j | tmp_dict
-            j["color"] = pv["Color"]["name"]
-            j["size"] = pv["Size"]["name"]
-            j["sku"] = pv["code"]
-            j["internalSku"] = pv["internalCode"]
-            j["height"] = pv["height"]
-            j["length"] = pv["length"]
-            j["weight"] = pv["weight"]
-            j["width"] = pv["width"]
-            j["IDENTIFICADOR_HIJO"] = pv["_id"]
-            j.pop("ProductVersions")
-            all_data.append(j)
-
-    # Generamos la tabla de datos
-    df = pd.DataFrame(all_data, columns = att_std + att_short_names)
-    df.columns = att_std + att_names
-
-    # Limpiamos atributos de informacion que no es relavante o complementaria
-    # de la base de datos de multivende
-    markets = []
-    for market in ["HB", "Falabella", "Ripley", "Paris", "Shopify"]:
-        for c in df.columns:
-            if market in c:
-                markets.append(c)
-
-    basics = [d for d in df.columns if d not in markets]
-    df = df[basics+markets]
-
-    # Limpiamos columnas duplicadas
-    df.drop(columns = df.columns[df.columns.duplicated()], inplace =True)
-    data = get_products()
-    #print(df.columns.isin(data.columns))
-    df = df[df.columns[df.columns.isin(data.columns)]]
-    diff = df[~df.isin(data)].dropna(how="all")
-    if diff.shape[0] == 0:
-        return render_template("update/products.html")
     
-    # Delete old data
-    stmt = db.text("DELETE FROM Productos_standard")
-    db.session.execute(stmt)
-    stmt = db.text("DELETE FROM Productos_MercadoLibre")
-    db.session.execute(stmt)
-    stmt = db.text("DELETE FROM Productos_Paris")
-    db.session.execute(stmt)
-    stmt = db.text("DELETE FROM Productos_Falabella")
-    db.session.execute(stmt)
-    stmt = db.text("DELETE FROM Productos_Ripley")
-    db.session.execute(stmt)
-    stmt = db.text("DELETE FROM Renombre_categorias")
-    db.session.execute(stmt)
-    db.session.commit()
+    from App.task.long_task import update_products
     
-    # Replace with new data
-    message = upload_data_products(df, db)
-    return render_template("update/products_updated", message=message)
+    update_products(token, current_app.config["MERCHANT_ID"], db)
+        
+    return render_template("update/products_updated.html")
 
 @update.get("/clients")
 @auth_required("basic")
