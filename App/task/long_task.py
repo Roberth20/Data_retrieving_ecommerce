@@ -313,8 +313,9 @@ def update_products(token, merchant_id, db):
     # Limpiamos columnas duplicadas
     df.drop(columns = df.columns[df.columns.duplicated()], inplace =True)
     data = get_products()
-    #print(df.columns.isin(data.columns))
-    df = df[df.columns[df.columns.isin(data.columns)]]
+    df = df.set_index(["IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"])
+    #df = df[df.columns[df.columns.isin(data.columns)]]
+    #df.to_excel("test_products.xlsx")
     diff = df[~df.isin(data)].dropna(how="all")
     
     if diff.shape[0] == 0:
