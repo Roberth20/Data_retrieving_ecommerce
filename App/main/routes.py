@@ -20,7 +20,8 @@ def main():
 @bp.route("/authorize")
 @auth_required("basic")
 def authorization():
-    return redirect("https://app.multivende.com/apps/authorize?response_type=code&client_id=114858424934&redirect_uri=http://data-retrieving-ecommerce-dev.us-east-2.elasticbeanstalk.com/main")
+    current_app.logger.info("Getting code")
+    return redirect("https://app.multivende.com/apps/authorize?response_type=code&client_id=114858424934&redirect_uri=http://data-retrieving-ecommerce-dev.us-east-2.elasticbeanstalk.com/auth/auto")
 
 @bp.route("/webhook", methods=["POST"])
 def webhook():

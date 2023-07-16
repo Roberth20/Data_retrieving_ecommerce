@@ -47,9 +47,15 @@ def upload_data_products(df, db):
         else:
             message += "<li>Hubo un error al actualizar 'Renombre_categorias'</li>"            
 
-
-    df.drop(df.columns[df.columns.str.contains("Material del trípode")][1], axis=1, inplace=True)
-    df.drop("Número de focos-Ripley Productos", axis=1, inplace=True)
+    try:
+        df.drop(df.columns[df.columns.str.contains("Material del trípode")][1], axis=1, inplace=True)
+    except:
+        current_app.logger.info("The column: Material del trípode. NO se encuentra en el dataframe")
+        
+    try:
+        df.drop("Número de focos-Ripley Productos", axis=1, inplace=True)
+    except:
+        current_app.logger.info("The column: Número de focos-Ripley Productos. NO se encuentra en el dataframe")
 
     std = df.columns[:21]
     mlc = df.columns[df.columns.str.contains("Mercado Libre")]

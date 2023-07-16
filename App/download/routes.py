@@ -54,6 +54,7 @@ def download_products():
                  "Alto", "Peso", "tags"]
     })
     std_transformation.loc[len(std_transformation), :] = ["size", "Talla"]
+    products.reset_index(inplace=True)
     
     current_app.logger.info("Sending excel with products")
     # Preparamos el buffer

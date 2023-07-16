@@ -16,6 +16,8 @@ from App.models.clients import clients
 from App.models.ids import ids, customs_ids
 from App.models.checkouts import checkouts, deliverys
 import requests
+from App.models.productos import get_products
+from App.get_data.Populate_tables import upload_data_products
 import numpy as np
 
 ALLOWED_EXTENSIONS = ["xlsx"]
@@ -184,9 +186,54 @@ def update_products():
     
     from App.task.long_task import update_products
     
-    update_products(token, current_app.config["MERCHANT_ID"], db)
+    update_products.delay(token, current_app.config["MERCHANT_ID"], db)
         
     return render_template("update/products_updated.html")
+
+@update.route("products_file", methods=["GET", "POST"])
+@auth_required("basic")
+def update_products_from_file():
+    if request.method == "POST":
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            return redirect(request.url)
+        file = request.files['file']
+        # If the user does not select a file, the browser submits an
+        # empty file without a filename.
+        if file.filename == '':
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            # Load data
+            df = pd.read_excel(file)
+            db_products = get_products()
+            mask = ~df.columns.isin(["IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"])
+            # Check if data is valid
+            if ~df.columns[mask].isin(db_products.columns).all():
+                return render_template("update/error.html")
+            
+            # Delete old data
+            stmt = db.text("DELETE FROM Productos_standard")
+            db.session.execute(stmt)
+            stmt = db.text("DELETE FROM Productos_MercadoLibre")
+            db.session.execute(stmt)
+            stmt = db.text("DELETE FROM Productos_Paris")
+            db.session.execute(stmt)
+            stmt = db.text("DELETE FROM Productos_Falabella")
+            db.session.execute(stmt)
+            stmt = db.text("DELETE FROM Productos_Ripley")
+            db.session.execute(stmt)
+            stmt = db.text("DELETE FROM Renombre_categorias")
+            db.session.execute(stmt)
+            db.session.commit()
+
+            # Replace with new data
+            message = upload_data_products(df, db)
+            
+            return render_template("update/success.html", market = "Productos")
+    
+    return render_template("update/sample.html", market="Productos")
+
+    
 
 @update.get("/clients")
 @auth_required("basic")
@@ -196,8 +243,8 @@ def clients_data():
     if type(fl_customers) == str:
         return fl_customers
     pr_customers = get_data_paris(current_app.config["PARIS_API_KEY"])
-    if type(pl_customers) == str:
-        return pl_customers
+    if type(pr_customers) == str:
+        return pr_customers
     rp_customers = get_data_ripley(current_app.config["RIPLEY_API_KEY"])
     if type(rp_customers) == str:
         return rp_customers

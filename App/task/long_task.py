@@ -12,14 +12,7 @@ from flask import current_app
 from App.models.productos import get_products
 from App.get_data.Populate_tables import upload_data_products
 
-@celery.task
-def celery_long_task(duration):
-    for i in range(duration):
-        print("Working... {}/{}".format(i + 1, duration))
-        time.sleep(2)
-        if i == duration - 1:
-            print('Completed work on {}'.format(duration))
-            
+          
 @celery.task
 def update_deliverys(token, merchant_id, last, now):
     # Get marketplace connections
@@ -170,6 +163,7 @@ def update_checkouts(token, merchant_id, last, now):
         df.loc[i, "estado venta"] = df["estado venta"][i][-1]
         
     df = df.replace({np.NaN: None})
+    print(df["fecha"])
     
     check_difference_and_update_checkouts(df, checkouts, db)
     print("Updated checkouts database")
@@ -313,10 +307,10 @@ def update_products(token, merchant_id, db):
     # Limpiamos columnas duplicadas
     df.drop(columns = df.columns[df.columns.duplicated()], inplace =True)
     data = get_products()
-    df = df.set_index(["IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"])
+    df2 = df.set_index(["IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"])
     #df = df[df.columns[df.columns.isin(data.columns)]]
     #df.to_excel("test_products.xlsx")
-    diff = df[~df.isin(data)].dropna(how="all")
+    diff = df2[~df2.isin(data)].dropna(how="all")
     
     if diff.shape[0] == 0:
         return current_app.logger.info("Los productos ya se encuentran actualizados.")
@@ -338,3 +332,48 @@ def update_products(token, merchant_id, db):
     
     # Replace with new data
     message = upload_data_products(df, db)
+    
+    
+@celery.task
+def update_db():
+    from App.extensions.db import db
+    import pandas as pd
+    from flask import current_app
+    from App.models.auth import auth_app
+    from datetime import datetime, timedelta
+    from App.auth.funcs import decrypt
+    
+    last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
+    # Check if token exists
+    if last_auth == None:
+        current_app.logger.info("There is not token available.")
+        return
+    diff = datetime.utcnow() - last_auth.expire
+    # Check is token expired
+    if diff.total_seconds()/3600 > 6:
+        current_app.logger.info("The token expired.")
+        return
+    # Decrypt token
+    token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
+    
+    # Last time updated
+    result = db.session.scalar(db.select(checkouts).order_by(checkouts.fecha.desc()))
+    last_update = result.fecha - timedelta(days=28) # One month before to update changes of recents sells
+    now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+    last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
+    
+    current_app.logger.info("Updating Checkouts")
+    update_checkouts.delay(token, current_app.config['MERCHANT_ID'], last, now)
+    
+    # Last time updated
+    result = db.session.scalar(db.select(deliverys).order_by(deliverys.fecha_despacho.desc()))
+    last_update = result.fecha_despacho - timedelta(days=28) # One month before to update changes of recents sells
+    now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+    last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
+    
+    current_app.logger.info("Updating Deliverys")
+    update_deliverys.delay(token, current_app.config['MERCHANT_ID'], last, now)
+    
+    current_app.logger.info("Updating products")
+    update_products(token, current_app.config["MERCHANT_ID"], db)
+    
