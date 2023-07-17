@@ -5,4 +5,5 @@ class auth_app(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     token = db.Column(db.Text, nullable=False)
     expire = db.Column(db.DateTime, nullable=False)
+    refresh_token = db.Column(db.String(36), nullable=False)
     

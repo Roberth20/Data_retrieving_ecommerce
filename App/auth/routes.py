@@ -36,8 +36,9 @@ def main_auth():
             # Guardamos la informacion requerida y logueamos
             token = response.json()["token"]
             expiresAt = response.json()["expiresAt"]
+            refresh_token = response.json()["refreshToken"]
             encrypted = encrypt(token, current_app.config["SECRET_KEY"])
-            authentication = auth_app(token = encrypted, expire=expiresAt)
+            authentication = auth_app(token = encrypted, expire=expiresAt, refresh_token=refresh_token)
             db.session.add(authentication)
             db.session.commit()
             return render_template("auth/success.html")

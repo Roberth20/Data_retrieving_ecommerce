@@ -11,7 +11,13 @@ from App.update.funcs import check_diferences_and_update_deliverys
 from flask import current_app
 from App.models.productos import get_products
 from App.get_data.Populate_tables import upload_data_products
+from App.models.auth import auth_app
 
+@celery.task
+def celery_long_task(duration):
+    for i in range(duration):
+        print(i)
+        time.sleep(5)
           
 @celery.task
 def update_deliverys(token, merchant_id, last, now):
@@ -163,7 +169,7 @@ def update_checkouts(token, merchant_id, last, now):
         df.loc[i, "estado venta"] = df["estado venta"][i][-1]
         
     df = df.replace({np.NaN: None})
-    print(df["fecha"])
+    df.to_excel("Checkouts.xlsx", index=False)
     
     check_difference_and_update_checkouts(df, checkouts, db)
     print("Updated checkouts database")
@@ -373,7 +379,46 @@ def update_db():
     
     current_app.logger.info("Updating Deliverys")
     update_deliverys.delay(token, current_app.config['MERCHANT_ID'], last, now)
+
     
-    current_app.logger.info("Updating products")
-    update_products(token, current_app.config["MERCHANT_ID"], db)
+@celery.task
+def update_token():
+    print("Updating token")
+    current_app.logger.info("Updating token")
+    url = "https://app.multivende.com/oauth/access-token"
+    # Get last token
+    last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
+    # Check if exists token
+    if last_auth == None:
+        return render_template("update/token_error.html")
     
+    refresh_token = last_auth.refresh_token
+    
+    payload = json.dumps({
+        "client_id": current_app.config["CLIENT_ID"],
+        "client_secret": current_app.config["CLIENT_SECRET"],    
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token
+    }
+    )
+    print(payload)
+    headers = {
+        'cache-control': 'no-cache',
+        'Content-Type': 'application/json'
+    }
+    response = requests.post(url, headers=headers, data=payload)
+    print(response.text)
+    try:
+        # Guardamos la informacion requerida y logueamos
+        token = response.json()["token"]
+        expiresAt = response.json()["expiresAt"]
+        refresh_token = response.json()["refreshToken"]
+        encrypted = encrypt(token, current_app.config["SECRET_KEY"])
+        authentication = auth_app(token = encrypted, expire=expiresAt, refresh_token=refresh_token)
+        db.session.add(authentication)
+        db.session.commit()
+        print("Actualizacion de token exitosa")
+        current_app.logger.info('Actualizacion de token exitosa')
+    except Exception as e:
+        print("Error en la autenticacion de actualizacion: ", e)
+        current_app.logger.error("Error en la autenticacion de actualizacion: ", e)

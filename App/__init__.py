@@ -47,8 +47,8 @@ def create_app(test_config=False):
     from App.create_update import cupdate
     app.register_blueprint(cupdate, url_prefix="/create_update")
     
-    #from App.SQS import sqs
-    #app.register_blueprint(sqs, url_prefix="/sqs")
+    from App.SQS import sqs
+    app.register_blueprint(sqs, url_prefix="/sqs")
     
     return app
 
@@ -69,12 +69,15 @@ def configure_celery(app: Flask) -> Celery:
             with app.app_context():
                 return TaskBase.__call__(self, *args, **kwargs)
     celery.celery.conf.update(app.config)
-    from kombu.utils.url import safequote
     celery.celery.conf.update(broker_url = app.config["BROKER_URL"])
     celery.celery.conf.beat_schedule = {
         "add-every-day":{
-            "task":"task.update_db",
-            "schedule": crontab(hour=0, minute=0)
+            "task":"App.task.long_task.update_db",
+            "schedule": crontab(minute=0, hour="*/4")
+        },
+        "add-every-4-hours":{
+            "task":"App.task.long_task.update_token",
+            "schedule": crontab(minute="*/10")#, hour="*/1")
         }
     }
     celery.celery.Task = ContextTask

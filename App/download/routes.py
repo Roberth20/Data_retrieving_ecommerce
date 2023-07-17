@@ -218,6 +218,7 @@ def download_checkouts():
     # Sending data
     current_app.logger.info("Sending data checkouts")
     buffer = io.BytesIO()
+    checkout_data = checkout_data.sort_values("fecha", ascending=False)
     checkout_data.to_excel(buffer, index = False)
     
     headers = {
@@ -242,6 +243,7 @@ def download_deliverys():
     # Sending data
     current_app.logger.info("Sending data deliverys")
     buffer = io.BytesIO()
+    delivery_data = delivery_data.sort_values("fecha despacho", ascending=False)
     delivery_data.to_excel(buffer, index = False)
     
     headers = {
