@@ -47,8 +47,3 @@ def main_auth():
             return render_template("auth/error.html", message=str(e)+response.text)
     
     return render_template("auth/main.html")
-
-@auth.route("/auto", methods=["GET", "POST"])
-@auth_required("basic")
-def auto_auth():
-    return

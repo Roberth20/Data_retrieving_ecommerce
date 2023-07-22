@@ -383,6 +383,8 @@ def update_db():
     
 @celery.task
 def update_token():
+    from App.models.auth import auth_app
+    from App.auth.funcs import encrypt, decrypt
     print("Updating token")
     current_app.logger.info("Updating token")
     url = "https://app.multivende.com/oauth/access-token"
@@ -401,13 +403,11 @@ def update_token():
         "refresh_token": refresh_token
     }
     )
-    print(payload)
     headers = {
         'cache-control': 'no-cache',
         'Content-Type': 'application/json'
     }
     response = requests.post(url, headers=headers, data=payload)
-    print(response.text)
     try:
         # Guardamos la informacion requerida y logueamos
         token = response.json()["token"]

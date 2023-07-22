@@ -73,11 +73,11 @@ def configure_celery(app: Flask) -> Celery:
     celery.celery.conf.beat_schedule = {
         "add-every-day":{
             "task":"App.task.long_task.update_db",
-            "schedule": crontab(minute=0, hour="*/4")
+            "schedule": crontab(minute=10, hour="*/4")
         },
         "add-every-4-hours":{
             "task":"App.task.long_task.update_token",
-            "schedule": crontab(minute="*/10")#, hour="*/1")
+            "schedule": crontab(minute= 0 , hour="*/4")
         }
     }
     celery.celery.Task = ContextTask

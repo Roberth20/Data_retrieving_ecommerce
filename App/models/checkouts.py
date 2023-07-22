@@ -18,7 +18,7 @@ class checkouts(db.Model):
     n_venta = db.Column(db.String(16), nullable=False)
     nombre_cliente = db.Column(db.String(120), nullable=False)
     nombre_producto = db.Column(db.String(120), nullable=False)
-    phone = db.Column(db.String(15), nullable=False)
+    phone = db.Column(db.String(15), nullable=True)
     precio = db.Column(db.Integer, nullable=False)
     url_boleta = db.Column(db.String(160))
     
