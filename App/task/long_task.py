@@ -12,6 +12,14 @@ from flask import current_app
 from App.models.productos import get_products
 from App.get_data.Populate_tables import upload_data_products
 from App.models.auth import auth_app
+from App.models.ids import ids, customs_ids
+from App.update.funcs import get_customs_attributes
+from App.update.funcs import get_data_brands
+from App.update.funcs import get_data_warranties
+from App.update.funcs import get_data_tags
+from App.update.funcs import get_data_colors
+from App.update.funcs import get_data_categories
+from App.update.funcs import get_data_size
 
 @celery.task
 def celery_long_task(duration):
@@ -125,7 +133,12 @@ def update_checkouts(token, merchant_id, last, now):
         print(f"Working to get data... {i}/{total_ids}")
         tmp = {}
         url = f"https://app.multivende.com/api/checkouts/{id}"
-        checkout = requests.get(url, headers=headers).json()
+        checkout = requests.get(url, headers=headers)
+        try:
+            checkout = checkout.json()
+        except:
+            current_app.logger.error(f"Error: {checkout.text}")
+        
         tmp["fecha"] = checkout["soldAt"]
         tmp["nombre"] = checkout["Client"]["fullName"]
         tmp["n venta"] = checkout["CheckoutLink"]["externalOrderNumber"] # Numero de orden en marketplace
@@ -169,7 +182,6 @@ def update_checkouts(token, merchant_id, last, now):
         df.loc[i, "estado venta"] = df["estado venta"][i][-1]
         
     df = df.replace({np.NaN: None})
-    df.to_excel("Checkouts.xlsx", index=False)
     
     check_difference_and_update_checkouts(df, checkouts, db)
     print("Updated checkouts database")
@@ -423,3 +435,70 @@ def update_token():
     except Exception as e:
         print("Error en la autenticacion de actualizacion: ", e)
         current_app.logger.error("Error en la autenticacion de actualizacion: ", e)
+        
+@celery.task
+def upload_ids(token, merchant_id, model):
+    if model == "ids":        
+        current_app.logger.info("Getting data from brands")
+        brands = get_data_brands(token, merchant_id)
+        if type(brands) == str:
+            current_app.logger.error(f"Error: {brands}")
+            return
+        
+        current_app.logger.info("Getting data from warranties")
+        warr = get_data_warranties(token, merchant_id)
+        if type(warr) == str:
+            current_app.logger.error(f"Error: {warr}")
+            return
+
+        current_app.logger.info("Getting data from tags")
+        tags = get_data_tags(token, merchant_id)
+        if type(tags) == str:
+            current_app.logger.error(f"Error: {tags}")
+            return
+        
+        current_app.logger.info("Getting data from colors")
+        colors = get_data_colors(token, merchant_id)
+        if type(colors) == str:
+            current_app.logger.error(f"Error: {colors}")
+            return
+        
+        current_app.logger.info("Getting data from categories")
+        cats = get_data_categories(token, merchant_id)
+        if type(cats) == str:
+            current_app.logger.error(f"Error: {cats}")
+            return
+
+        current_app.logger.info("Getting data from sizes")
+        size = get_data_size(token, merchant_id)
+        if type(size) == str:
+            current_app.logger.error(f"Error: {size}")
+            return
+        
+        df = pd.concat([brands, warr, tags, colors, cats, size], ignore_index=True)
+        
+        current_app.logger.info("Uploading to DB")
+        for i, row in df.iterrows():
+            result = db.session.scalar(db.select(ids).where(ids.id == row["_id"]))
+            if result == None:
+                new_ids = ids(name = row["name"], id = row["_id"], type=row["type"])
+                db.session.add(new_ids)
+        db.session.commit()
+        
+        current_app.logger.info("Successful upload customs_ids to DB.")
+    elif model == "customs_ids":
+        current_app.logger.info("Retrieving custom attributes")
+        data = get_customs_attributes(token, merchant_id)
+        
+        current_app.logger.info("Uploading to DB")
+        for i, row in data.iterrows():
+            result = db.session.scalar(db.select(customs_ids).where(customs_ids.id == row["id"]))
+            if result == None:
+                c_ids = customs_ids(id_set = row["id_set"], name_set = row["name_set"], id = row["id"],
+                                   name = row["name"], option_name = row["option_name"], option_id = row["option_id"])
+                db.session.add(c_ids)
+        db.session.commit()
+        
+        current_app.logger.info("Successful upload customs_ids to DB.")
+    else:
+        current_app.logger.error(f"Error: model {model} no es valido.")

@@ -5,6 +5,7 @@ import pandas as pd
 from flask import render_template, request, redirect
 from App.models.mapeo_atributos import *
 from App.extensions.db import db
+from App.extensions.celery import celery
 from App.update.funcs import *
 from App.models.mapeo_categorias import Mapeo_categorias
 from flask_security import auth_required
@@ -13,7 +14,6 @@ from App.auth.funcs import decrypt
 from flask import current_app
 from datetime import datetime, timedelta
 from App.models.clients import clients
-from App.models.ids import ids, customs_ids
 from App.models.checkouts import checkouts, deliverys
 import requests
 from App.models.productos import get_products
@@ -184,9 +184,8 @@ def update_products():
     # Decrypt token
     token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
     
-    from App.task.long_task import update_products
-    
-    update_products.delay(token, current_app.config["MERCHANT_ID"])
+    current_app.logger.info("Sending to worker task: update_products")
+    celery.send_task("App.task.long_task.update_products", [token, current_app.config["MERCHANT_ID"]])
         
     return render_template("update/products_updated.html")
 
@@ -268,12 +267,8 @@ def clients_data():
 @update.route("/checkouts", methods=["GET"])
 @auth_required("basic")
 def update_checkouts():
-    # Last time updated
-    result = db.session.scalar(db.select(checkouts).order_by(checkouts.fecha.desc()))
-    last_update = result.fecha - timedelta(days=28) # One month before to update changes of recents sells
-    now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
-    last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
     last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
+    
     # Check if token exists
     if last_auth == None:
         return render_template("update/token_error.html")
@@ -284,9 +279,14 @@ def update_checkouts():
     # Decrypt token
     token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
     
-    from App.task.long_task import update_checkouts
+    # Last time updated
+    result = db.session.scalar(db.select(checkouts).order_by(checkouts.fecha.desc()))
+    last_update = result.fecha - timedelta(days=28) # One month before to update changes of recents sells
+    now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+    last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
     
-    update_checkouts.delay(token, current_app.config['MERCHANT_ID'], last, now)
+    current_app.logger.info("Sending to worker task: update_checkouts")
+    celery.send_task("App.task.long_task.update_checkouts", [token, current_app.config["MERCHANT_ID"], last, now])
     
     return render_template("update/checkouts.html")
 
@@ -310,9 +310,8 @@ def update_ventas():
     now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
     last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
     
-    from App.task.long_task import update_deliverys
-    
-    update_deliverys.delay(token, current_app.config['MERCHANT_ID'], last, now)
+    current_app.logger.info("Sending to worker task: update_deliverys")
+    celery.send_task("App.task.long_task.update_deliverys", [token, current_app.config["MERCHANT_ID"], last, now])
     
     return render_template("update/delivery.html")
 
@@ -332,46 +331,10 @@ def update_ids():
     # Decrypt token
     token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
     
-    current_app.logger.info("Getting data from brands")
-    brands = get_data_brands(token, current_app.config["MERCHANT_ID"])
-    if type(brands) == str:
-        return render_template("update/error-actualizacion.html", message=brands)
+    current_app.logger.info("Sending to worker task: upload_ids")
+    celery.send_task("App.task.long_task.upload_ids", [token, current_app.config["MERCHANT_ID"], "ids"])
     
-    current_app.logger.info("Getting data from warranties")
-    warr = get_data_warranties(token, current_app.config["MERCHANT_ID"])
-    if type(warr) == str:
-        return render_template("update/error-actualizacion.html", message=warr)
-    
-    current_app.logger.info("Getting data from tags")
-    tags = get_data_tags(token, current_app.config["MERCHANT_ID"])
-    if type(tags) == str:
-        return render_template("update/error-actualizacion.html", message=tags)
-    
-    current_app.logger.info("Getting data from colors")
-    colors = get_data_colors(token, current_app.config["MERCHANT_ID"])
-    if type(colors) == str:
-        return render_template("update/error-actualizacion.html", message=colors)
-    
-    current_app.logger.info("Getting data from categories")
-    cats = get_data_categories(token, current_app.config["MERCHANT_ID"])
-    if type(cats) == str:
-        return render_template("update/error-actualizacion.html", message=cats)
-    
-    current_app.logger.info("Getting data from sizes")
-    size = get_data_size(token, current_app.config["MERCHANT_ID"])
-    if type(size) == str:
-        return render_template("update/error-actualizacion.html", message=size)
-    
-    data = pd.concat([brands, warr, tags, colors, cats, size], ignore_index=True)
-    
-    current_app.logger.info("Uploading to DB")
-    for i, row in data.iterrows():
-        result = db.session.scalar(db.select(ids).where(ids.id == row["_id"]))
-        if result == None:
-            new_ids = ids(name = row["name"], id = row["_id"], type=row["type"])
-            db.session.add(new_ids)
-    db.session.commit()
-    return render_template("update/success-ids.html")
+    return render_template("update/success-ids.html", message="marcas, tallas, categorias, colores, tags y garantias")
     
 @update.route("/custom_ids", methods=["GET"])
 @auth_required("basic")
@@ -388,15 +351,9 @@ def update_custom_ids():
     # Decrypt token
     token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
     
-    current_app.logger.info("Retrieving custom attributes")
-    get_customs_attributes(token, current_app.config["MERCHANT_ID"])
+    current_app.logger.info("Sending to worker task: upload_ids")
+    celery.send_task("App.task.long_task.upload_ids", [token, current_app.config["MERCHANT_ID"], "customs_ids"])
     
-    current_app.logger.info("Uploading to DB")
-    for i, row in data.iterrows():
-        c_ids = customs_ids(id_set = row["id_set"], name_set = row["name_set"], id = row["id"],
-                           name = row["name"], option_name = row["option_name"], option_id = row["option_id"])
-        db.session.add(c_ids)
-    db.session.commit()
-    return "All good"
+    return render_template("update/success-ids.html", message="Custom attributes")
     
     

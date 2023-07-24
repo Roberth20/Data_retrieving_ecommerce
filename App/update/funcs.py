@@ -565,5 +565,4 @@ def get_customs_attributes(token, merchant_id):
     dfv = pd.DataFrame(info_pv)
     
     data = pd.concat([dfv, dfp], ignore_index=True)
-    data.to_excel("custom_ids.xlsx", index=False)
-    return 
+    return data
