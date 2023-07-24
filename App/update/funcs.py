@@ -2,6 +2,7 @@
 # Import imporant libraries
 import datetime
 import requests
+import pandas as pd
 import numpy as np
 
 def check_differences_and_upload_maps(df, db_market, db, market):
@@ -364,3 +365,205 @@ def get_data_ripley(key):
         customers.append(tmp)
         
     return pd.DataFrame(customers)
+
+def get_data_brands(token, merchant_id):
+    url = f"https://app.multivende.com/api/m/{merchant_id}/brands/p/1"
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+    
+    response = requests.request("GET", url, headers=headers)
+    
+    try:
+        response = response.json()
+    except:
+        return f"Error: {response.text}"
+        
+    brands = pd.DataFrame(response["entries"])
+    brands["type"] = "brand"
+    brands = brands[["_id", "name", "type"]]
+    return brands
+
+def get_data_warranties(token, merchant_id):
+    url = f"https://app.multivende.com/api/m/{merchant_id}/warranties"    
+    headers = {
+            'Authorization': f'Bearer {token}'
+        }
+
+    response = requests.request("GET", url, headers=headers)
+    
+    try:
+        response = response.json()
+    except:
+        return f"Error: {response.text}"
+        
+    warranties = pd.DataFrame(response["entries"])
+    warranties["type"] = "warranty"
+    warranties = warranties[["_id", "name", "type"]]
+    return warranties
+
+def get_data_tags(token, merchant_id):
+    url = f"https://app.multivende.com/api/m/{merchant_id}/tags/p/1"    
+    headers = {
+            'Authorization': f'Bearer {token}'
+        }
+    
+    response = requests.request("GET", url, headers=headers)
+    
+    try:
+        response = response.json()
+    except:
+        return f"Error: {response.text}"
+        
+    tags = pd.DataFrame(response["entries"])
+    tags["type"] = "tag"
+    tags = tags[["_id", "name", "type"]]
+    return tags
+
+def get_data_colors(token, merchant_id):
+    url = f"https://app.multivende.com/api/m/{merchant_id}/colors/p/1"    
+    headers = {
+            'Authorization': f'Bearer {token}'
+        }
+
+    response = requests.request("GET", url, headers=headers)
+    try:
+        response = response.json()
+    except:
+        return f"Error: {response.text}"
+        
+    colors = pd.DataFrame(response["entries"])
+    colors["type"] = "color"
+    colors = colors[["_id", "name", "type"]]
+    return colors
+
+def get_data_categories(token, merchant_id):
+    url = f"https://app.multivende.com/api/m/{merchant_id}/product-categories/p/1"    
+    headers = {
+            'Authorization': f'Bearer {token}'
+        }
+    
+    response = requests.request("GET", url, headers=headers)
+    try:
+        response = response.json()
+    except:
+        return f"Error: {response.text}"
+    
+    pages = response["pagination"]["total_pages"]
+    data = []
+    for p in range(pages):
+        url = f"https://app.multivende.com/api/m/{merchant_id}/product-categories/p/{p}"
+        headers = {
+                'Authorization': f'Bearer {token}'
+            }
+        response = requests.request("GET", url, headers=headers)
+        
+        try:
+            response = response.json()
+        except:
+            return f"Error: {response.text}"
+        
+        df = pd.DataFrame(response["entries"])
+        data.append(df)
+        
+    cats = pd.concat(data, ignore_index=True)
+    cats["type"] = "category"
+    cats = cats[["_id", "name", "type"]]
+    return cats
+
+def get_data_size(token, merchant_id):
+    url = f"https://app.multivende.com/api/m/{merchant_id}/sizes/p/1"
+    headers = {
+            'Authorization': f'Bearer {token}'
+        }
+    response = requests.request("GET", url, headers=headers)
+    
+    try:
+        response = response.json()
+    except:
+        return f"Error: {response.text}"
+    
+    size = pd.DataFrame(response["entries"])
+    size["type"] = "size"
+    size = size[["_id", "name", "type"]]
+    return size
+
+def get_customs_attributes(token, merchant_id):
+    url1 = f"https://app.multivende.com/api/m/{merchant_id}/custom-attribute-sets/products"
+    url2 = f"https://app.multivende.com/api/m/{merchant_id}/custom-attribute-sets/product_versions"
+    headers = {
+            'Authorization': f'Bearer {token}'
+        }
+    #current_app.logger.info("Solicitando ids de marketplaces connections")
+    response1 = requests.request("GET", url1, headers=headers)
+    response2 = requests.request("GET", url2, headers=headers)
+    try:
+        response1 = response1.json()
+    except:
+        print("Error" + response1.text)
+    try:
+        response2 = response2.json()
+    except:
+        print("Error" + response2.text)
+    
+    info_p = []
+    for item in response1["entries"]:
+        custom_att = {}
+        custom_att["id_set"] = item["_id"]
+        custom_att["name_set"] = item["name"]
+        if len(item["CustomAttributes"]) == 0:
+            custom_att["id"] = None
+            custom_att["name"] = None
+            custom_att["option_name"] = None
+            custom_att["option_id"] = None
+            info_p.append(custom_att)
+            continue
+        for ca in item["CustomAttributes"]:
+            custom_att_p = custom_att.copy()
+            custom_att_p["id"] = ca["_id"]
+            custom_att_p["name"] = ca["name"]
+            if len(ca["CustomAttributeOptions"]) == 0:
+                custom_att_p["option_name"] = None
+                custom_att_p["option_id"] = None
+                info_p.append(custom_att_p)
+                continue
+            for op in ca["CustomAttributeOptions"]:
+                custom_att_op = custom_att_p.copy()
+                custom_att_op["option_name"] = op["code"]
+                custom_att_op["option_id"] = op["_id"]
+                info_p.append(custom_att_op)
+                
+    dfp = pd.DataFrame(info_p)
+                
+    info_pv = []
+    for item in response2["entries"]:
+        custom_att = {}
+        custom_att["id_set"] = item["_id"]
+        custom_att["name_set"] = item["name"]
+        if len(item["CustomAttributes"]) == 0:
+            custom_att["id"] = None
+            custom_att["name"] = None
+            custom_att["option_name"] = None
+            custom_att["option_id"] = None
+            info_pv.append(custom_att)
+            continue
+        for ca in item["CustomAttributes"]:
+            custom_att_p = custom_att.copy()
+            custom_att_p["id"] = ca["_id"]
+            custom_att_p["name"] = ca["name"]
+            if len(ca["CustomAttributeOptions"]) == 0:
+                custom_att_p["option_name"] = None
+                custom_att_p["option_id"] = None
+                info_pv.append(custom_att_p)
+                continue
+            for op in ca["CustomAttributeOptions"]:
+                custom_att_op = custom_att_p.copy()
+                custom_att_op["option_name"] = op["code"]
+                custom_att_op["option_id"] = op["_id"]
+                info_pv.append(custom_att_op)
+                
+    dfv = pd.DataFrame(info_pv)
+    
+    data = pd.concat([dfv, dfp], ignore_index=True)
+    data.to_excel("custom_ids.xlsx", index=False)
+    return 

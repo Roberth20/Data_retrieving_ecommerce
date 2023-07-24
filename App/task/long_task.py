@@ -175,7 +175,7 @@ def update_checkouts(token, merchant_id, last, now):
     print("Updated checkouts database")
     
 @celery.task
-def update_products(token, merchant_id, db):
+def update_products(token, merchant_id):
     url = f"https://app.multivende.com/api/m/{merchant_id}/all-product-attributes"
     headers = {
             'Authorization': f'Bearer {token}'
@@ -392,7 +392,8 @@ def update_token():
     last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
     # Check if exists token
     if last_auth == None:
-        return render_template("update/token_error.html")
+        print("No hay token disponible")
+        return
     
     refresh_token = last_auth.refresh_token
     

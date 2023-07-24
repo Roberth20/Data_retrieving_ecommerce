@@ -186,7 +186,7 @@ def update_products():
     
     from App.task.long_task import update_products
     
-    update_products.delay(token, current_app.config["MERCHANT_ID"], db)
+    update_products.delay(token, current_app.config["MERCHANT_ID"])
         
     return render_template("update/products_updated.html")
 
@@ -317,59 +317,86 @@ def update_ventas():
     return render_template("update/delivery.html")
 
 
-@update.route("/ids", methods=["GET", "POST"])
+@update.route("/ids", methods=["GET"])
 @auth_required("basic")
-def update_ids():
-    if request.method == "POST":
-        # check if the post request has the file part
-        if 'file' not in request.files:
-            return redirect(request.url)
-        file = request.files['file']
-        # If the user does not select a file, the browser submits an
-        # empty file without a filename.
-        if file.filename == '':
-            return redirect(request.url)
-        if file and allowed_file(file.filename):
-            df = pd.read_excel(file)
-            for i, row in df.iterrows():
-                new_ids = ids(id=row["_id"], name=row["name"], type=row["type"])
-                db.session.add(new_ids)
-            
-            db.session.commit()
-            
-            return render_template("update/success.html", market = "Ids")
+def update_ids():    
+    current_app.logger.info("Getting token")
+    last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
+    # Check if token exists
+    if last_auth == None:
+        return render_template("update/token_error.html")
+    diff = datetime.utcnow() - last_auth.expire
+    # Check is token expired
+    if diff.total_seconds()/3600 > 6:
+        return render_template("update/token_error.html")
+    # Decrypt token
+    token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
     
-    return render_template("update/sample.html", market="Ids")
-
-###################################################################################################
-###############################          DELEVOPING-PURPOSE         ###############################
-###################################################################################################
-@update.route("/custom_ids", methods=["GET", "POST"])
+    current_app.logger.info("Getting data from brands")
+    brands = get_data_brands(token, current_app.config["MERCHANT_ID"])
+    if type(brands) == str:
+        return render_template("update/error-actualizacion.html", message=brands)
+    
+    current_app.logger.info("Getting data from warranties")
+    warr = get_data_warranties(token, current_app.config["MERCHANT_ID"])
+    if type(warr) == str:
+        return render_template("update/error-actualizacion.html", message=warr)
+    
+    current_app.logger.info("Getting data from tags")
+    tags = get_data_tags(token, current_app.config["MERCHANT_ID"])
+    if type(tags) == str:
+        return render_template("update/error-actualizacion.html", message=tags)
+    
+    current_app.logger.info("Getting data from colors")
+    colors = get_data_colors(token, current_app.config["MERCHANT_ID"])
+    if type(colors) == str:
+        return render_template("update/error-actualizacion.html", message=colors)
+    
+    current_app.logger.info("Getting data from categories")
+    cats = get_data_categories(token, current_app.config["MERCHANT_ID"])
+    if type(cats) == str:
+        return render_template("update/error-actualizacion.html", message=cats)
+    
+    current_app.logger.info("Getting data from sizes")
+    size = get_data_size(token, current_app.config["MERCHANT_ID"])
+    if type(size) == str:
+        return render_template("update/error-actualizacion.html", message=size)
+    
+    data = pd.concat([brands, warr, tags, colors, cats, size], ignore_index=True)
+    
+    current_app.logger.info("Uploading to DB")
+    for i, row in data.iterrows():
+        result = db.session.scalar(db.select(ids).where(ids.id == row["_id"]))
+        if result == None:
+            new_ids = ids(name = row["name"], id = row["_id"], type=row["type"])
+            db.session.add(new_ids)
+    db.session.commit()
+    return render_template("update/success-ids.html")
+    
+@update.route("/custom_ids", methods=["GET"])
 @auth_required("basic")
 def update_custom_ids():
-    if request.method == "POST":
-        # check if the post request has the file part
-        if 'file' not in request.files:
-            return redirect(request.url)
-        file = request.files['file']
-        # If the user does not select a file, the browser submits an
-        # empty file without a filename.
-        if file.filename == '':
-            return redirect(request.url)
-        if file and allowed_file(file.filename):
-            # Load data
-            df = pd.read_excel(file)
-            df = df.where(df.notna(), None)
-            for i, row in df.iterrows():
-                # Update data
-                c_ids = customs_ids(id_set = row["id_set"], name_set = row["name_set"], id = row["id"],
-                                   name = row["name"], option_name = row["option_name"], option_id = row["option_id"])
-                db.session.add(c_ids)
-            
-            db.session.commit()
-            
-            return render_template("update/success.html", market = "custom Ids")
+    current_app.logger.info("Getting token")
+    last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
+    # Check if token exists
+    if last_auth == None:
+        return render_template("update/token_error.html")
+    diff = datetime.utcnow() - last_auth.expire
+    # Check is token expired
+    if diff.total_seconds()/3600 > 6:
+        return render_template("update/token_error.html")
+    # Decrypt token
+    token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
     
-    return render_template("update/sample.html", market="custom Ids")
-
+    current_app.logger.info("Retrieving custom attributes")
+    get_customs_attributes(token, current_app.config["MERCHANT_ID"])
+    
+    current_app.logger.info("Uploading to DB")
+    for i, row in data.iterrows():
+        c_ids = customs_ids(id_set = row["id_set"], name_set = row["name_set"], id = row["id"],
+                           name = row["name"], option_name = row["option_name"], option_id = row["option_id"])
+        db.session.add(c_ids)
+    db.session.commit()
+    return "All good"
+    
     
