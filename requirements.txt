@@ -1,6 +1,7 @@
 cryptography==39.0.1
 Flask==2.3.2
 Flask_Security_Too==5.2.0
+PyMySQL==1.0.3
 flask_sqlalchemy==3.0.5
 flask_talisman==1.0.0
 numpy==1.24.3
@@ -9,4 +10,3 @@ Requests==2.31.0
 textdistance==4.5.0
 celery==5.3.1
 tqdm==4.65.0
-PyMySQL==1.0.3
