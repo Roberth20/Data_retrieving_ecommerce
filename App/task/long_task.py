@@ -211,7 +211,7 @@ def update_products(token, merchant_id):
     att_short_names = [item["name"] for item in att]
     
     # Obtenemos la lista de todos los productos.
-    current_app.logger.info("Solicitando productos")
+    current_app.logger.debug("Solicitando productos")
     url = f"https://app.multivende.com/api/m/{merchant_id}/products/light/p/1"
     response = requests.request("GET", url, headers=headers).json()
     data = response["entries"]
@@ -226,7 +226,7 @@ def update_products(token, merchant_id):
     ids = [item["_id"] for item in data]
     
     # Para cada producto, guardamos sus atributos
-    current_app.logger.info("Solicitando atributos de productos.")
+    current_app.logger.debug("Solicitando atributos de productos.")
     data = []
     for i in ids:
         url = f"https://app.multivende.com/api/products/{i}?_include_product_picture=true"
@@ -234,7 +234,7 @@ def update_products(token, merchant_id):
         data.append(response)
 
     # Dentro de los atributos normales, extraemos los atributos hechos por el usuario
-    current_app.logger.info("Procesando atributos personales")
+    current_app.logger.debug("Procesando atributos personales")
     customs = []
     for d in data:
         tmp_dict = {}
@@ -254,7 +254,7 @@ def update_products(token, merchant_id):
         info.append(data[i] | customs[i])
 
     # Hay atributos estandar que tienen informacion anidada, extraemos la misma
-    current_app.logger.info("Procesando atributos estandar")
+    current_app.logger.debug("Procesando atributos estandar")
     all_data = []
     for i in info:
         sku = i["code"]
@@ -331,7 +331,7 @@ def update_products(token, merchant_id):
     diff = df2[~df2.isin(data)].dropna(how="all")
     
     if diff.shape[0] == 0:
-        return current_app.logger.info("Los productos ya se encuentran actualizados.")
+        return current_app.logger.debug("Los productos ya se encuentran actualizados.")
     
     # Delete old data
     stmt = db.text("DELETE FROM Productos_standard")

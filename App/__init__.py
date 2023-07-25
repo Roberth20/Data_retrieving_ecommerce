@@ -70,7 +70,6 @@ def configure_celery(app: Flask) -> Celery:
                 return TaskBase.__call__(self, *args, **kwargs)
     celery.celery.conf.update(app.config)
     celery.celery.conf.update(broker_url = app.config["BROKER_URL"], broker_transport_options={"visibility_timeout":300})
-    app.logger.info(f"{celery.celery.conf.broker_url}")
     celery.celery.conf.beat_schedule = {
         "add-every-day":{
             "task":"App.task.long_task.update_db",

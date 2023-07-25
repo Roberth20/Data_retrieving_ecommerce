@@ -184,7 +184,7 @@ def update_products():
     # Decrypt token
     token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
     
-    current_app.logger.info("Sending to worker task: update_products")
+    current_app.logger.debug("Sending to worker task: update_products")
     celery.send_task("App.task.long_task.update_products", [token, current_app.config["MERCHANT_ID"]])
         
     return render_template("update/products_updated.html")
@@ -285,7 +285,7 @@ def update_checkouts():
     now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
     last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
     
-    current_app.logger.info("Sending to worker task: update_checkouts")
+    current_app.logger.debug("Sending to worker task: update_checkouts")
     celery.send_task("App.task.long_task.update_checkouts", [token, current_app.config["MERCHANT_ID"], last, now])
     
     return render_template("update/checkouts.html")
@@ -310,7 +310,7 @@ def update_ventas():
     now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
     last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
     
-    current_app.logger.info("Sending to worker task: update_deliverys")
+    current_app.logger.debug("Sending to worker task: update_deliverys")
     celery.send_task("App.task.long_task.update_deliverys", [token, current_app.config["MERCHANT_ID"], last, now])
     
     return render_template("update/delivery.html")
@@ -319,7 +319,7 @@ def update_ventas():
 @update.route("/ids", methods=["GET"])
 @auth_required("basic")
 def update_ids():    
-    current_app.logger.info("Getting token")
+    current_app.logger.debug("Getting token")
     last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
     # Check if token exists
     if last_auth == None:
@@ -331,7 +331,7 @@ def update_ids():
     # Decrypt token
     token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
     
-    current_app.logger.info("Sending to worker task: upload_ids")
+    current_app.logger.debug("Sending to worker task: upload_ids")
     celery.send_task("App.task.long_task.upload_ids", [token, current_app.config["MERCHANT_ID"], "ids"])
     
     return render_template("update/success-ids.html", message="marcas, tallas, categorias, colores, tags y garantias")
@@ -339,7 +339,7 @@ def update_ids():
 @update.route("/custom_ids", methods=["GET"])
 @auth_required("basic")
 def update_custom_ids():
-    current_app.logger.info("Getting token")
+    current_app.logger.debug("Getting token")
     last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
     # Check if token exists
     if last_auth == None:
@@ -351,7 +351,7 @@ def update_custom_ids():
     # Decrypt token
     token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
     
-    current_app.logger.info("Sending to worker task: upload_ids")
+    current_app.logger.debug("Sending to worker task: upload_ids")
     celery.send_task("App.task.long_task.upload_ids", [token, current_app.config["MERCHANT_ID"], "customs_ids"])
     
     return render_template("update/success-ids.html", message="Custom attributes")
