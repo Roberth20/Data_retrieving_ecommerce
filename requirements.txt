@@ -9,3 +9,4 @@ Requests==2.31.0
 textdistance==4.5.0
 celery==5.3.1
 tqdm==4.65.0
+PyMySQL==1.0.3
