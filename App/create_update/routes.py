@@ -30,7 +30,6 @@ def confirmation():
 @cupdate.get("/send")
 @auth_required("basic")
 def send_form():
-    return "Under test"
     # Get the last token info registed on the DB
     current_app.logger.info("Retrieving Token")
     last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
@@ -61,7 +60,7 @@ def send_form():
     std = products.columns[:20]
     
     # Prepare to send data of each product on the database
-    message = None
+    message = ""
     for i in range(products.shape[0]):
         # Get product
         p = products.iloc[i, :].copy()
@@ -89,7 +88,10 @@ def send_form():
             size = id_data["id"][id_data["name"] == p["size"]].values[0]
         brand = None
         if pd.notna(p["Brand"]):
-            brand =  id_data["id"][id_data["name"] == p["Brand"]].values[0]
+            try:
+                brand =  id_data["id"][id_data["name"] == p["Brand"]].values[0]
+            except:
+                current_app.logger.info(f"ID of brand: {p['Brand']} not in database")
         color = None
         if pd.notna(p["color"]):
             color =  id_data["id"][id_data["name"] == p["color"]].values[0]
@@ -153,26 +155,23 @@ def send_form():
           'Content-Type': 'application/json',
           'Authorization': f'Bearer {token}'
         }
-
         # Sending request 
         url = f"https://app.multivende.com/api/products/{p.name[0]}" # UPDATE
         #url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/products" # CREATE 
         #current_app.logger.info("Sending request POST to update products at Multivende") 
         current_app.logger.info("Sending request PUT to update products at Multivende")
-        response = requests.request("PUT", url, headers=headers, data=payload) # UPDATE
+        #response = requests.request("PUT", url, headers=headers, data=payload) # UPDATE
         #response = requests.request("POST", url, headers=headers, data=payload)
-        
         # Check there was an error and abort sending data
-        if response.status_code != 201:
-            current_app.logger.error(f"Aborting sending data for reason: {response.reason}")
-            message = response.reason + " " + p["name"] + " " + response.text + " " + response.request.body
-            return render_template("create_update/error.html", message=message)
+        #if response.status_code != 201:
+         #   current_app.logger.error(f"Aborting sending data for reason: {response.reason}")
+          #  message = response.reason + " " + p["name"] + " " + response.text + " " + response.request.body
+           # return render_template("create_update/error.html", message=message)
         
-        message = p["name"] + " OK"
-        break
+        message += p["name"] + " OK"
     
     current_app.logger.info("Data sent without problems")
-    return render_template("create_update/success.html")
+    return message#render_template("create_update/success.html")
 
 # Endpoint to prepare data and upload
 @cupdate.get("/send_test")
