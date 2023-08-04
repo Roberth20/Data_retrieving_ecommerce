@@ -14,3 +14,4 @@ openpyxl==3.0.10
 boto3==1.27.1
 tqdm==4.65.0
 gunicorn==21.2.0
+bleach==4.1.0

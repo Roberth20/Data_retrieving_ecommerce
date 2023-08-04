@@ -1,6 +1,6 @@
 from App.auth import auth
 from flask_security import auth_required
-from flask import current_app, request, render_template
+from flask import current_app, request, render_template, url_for, redirect
 from App.models.auth import auth_app
 import json
 from App.extensions.db import db
