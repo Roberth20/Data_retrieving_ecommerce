@@ -10,10 +10,10 @@
 	</div>
 	<div class="content">
 		<h1>Informacion de clientes actualizada con exito</h1>
-        <p>Puede dirigirse a <a href="/download/clients">clientes</a> para descargar el documento actualizado.</p>
+        <p>Puede dirigirse a <a href="{{url_for('download.download_clients')}}">clientes</a> para descargar el documento actualizado.</p>
 	</div>
     <div>
-        <a href = "/update">Back</a>
+        <a href = "{{url_for('update.update_main')}}">Back</a>
     </div>
 </div>
 

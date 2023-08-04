@@ -13,16 +13,16 @@
         <p>Aqui puede actualizar los datos relacionados a los productos, mapeos de atributos y categorias.</p>
 		<div>
 		    <ol>
-                <li><a href="/update/products">Actualizacion de productos desde Multivende</a></li>
-                <li><a href="/update/products_file">Actualizacion de productos desde excel</a></li>
-                <li><a href="/update/paris">Mapeo Paris</a></li>
-                <li><a href="/update/falabella">Mapeo Falabella</a></li>
-                <li><a href="/update/mercadolibre">Mapeo Mercado Libre</a></li>
-                <li><a href="/update/ripley">Mapeo Ripley</a></li>
-                <li><a href="/update/map_cat">Mapeo de categorias Multivende y marketplace.</a></li>
-                <li><a href="/update/clients">Clientes</a></li>
-                <li><a href="/update/checkouts">Ventas</a></li>
-                <li><a href="/update/deliverys">Entregas</a></li>
+                 <li><a href="{{url_for('update.update_products')}}">Actualizar productos</a></li>
+                    <li><a href="{{url_for('update.update_products_from_file')}}">Actualizacion de productos desde excel</a></li>
+                    <li><a href="{{url_for('update.update_paris')}}">Actualizar mapeo de atributos de Paris</a></li>
+                    <li><a href="{{url_for('update.update_falabella')}}">Actualizar mapeo de atributos de Falabella</a></li>
+                    <li><a href="{{url_for('update.update_mercadolibre')}}">Actualizar mapeo de atributos de Mercado Libre</a></li>
+                    <li><a href="{{url_for('update.update_ripley')}}">Actualizar mapeo de atributos de Ripley</a></li>
+                    <li><a href="{{url_for('update.update_mapcat')}}">Actualizar mapeo de categorias</a></li>
+                    <li><a href="{{url_for('update.clients_data')}}">Actualizar datos de clientes</a></li>
+                    <li><a href="{{url_for('update.update_checkouts')}}">Actualizar registro de ventas</a></li>
+                    <li><a href="{{url_for('update.update_ventas')}}">Actualizar registro de entregas</a></li>
             </ol>
 		</div>
 	</div>

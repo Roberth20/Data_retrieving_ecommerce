@@ -14,37 +14,36 @@
 		<h1>Hola.<span> Aplicacion en desarrollo</span></h1>
 		<div class="right_side">
             <ul>
-                <li><a href="/authorize">Autorizar conexion con multivende</a></li>
                 <li><a href="{{url_for('auth.main_auth')}}">Autenticar conexion</a></li>
-                <li><a href="/download">Download the previous excel with colorful information</a></li>
+                <li><a href="{{url_for('download.index')}}">Download the previous excel with colorful information</a></li>
                 <ul>
-                    <li><a href="/download/products">Descarga de productos</a></li>
-                    <li><a href="/download/maps">Descarga de mapeo de atributos</a></li>
+                    <li><a href="{{url_for('download.download_products')}}">Descarga de productos</a></li>
+                    <li><a href="{{url_for('download.download_maps')}}">Descarga de mapeo de atributos</a></li>
                     <ul>
-                        <li><a href="/download/maps/paris">Mapeo Paris.xlsx</a></li>
-                        <li><a href="/download/maps/falabella">Mapeo Falabella.xlsx</a></li>
-                        <li><a href="/download/maps/mercadolibre">Mapeo Mercado Libre.xlsx</a></li>
-                        <li><a href="/download/maps/ripley">Mapeo Ripley.xlsx</a></li>
+                        <li><a href="{{url_for('download.download_paris')}}">Mapeo Paris.xlsx</a></li>
+                        <li><a href="{{url_for('download.download_falabella')}}">Mapeo Falabella.xlsx</a></li>
+                        <li><a href="{{url_for('download.download_mercadolibre')}}">Mapeo Mercado Libre.xlsx</a></li>
+                        <li><a href="{{url_for('download.download_ripley')}}">Mapeo Ripley.xlsx</a></li>
                     </ul>
-                    <li><a href="/download/map_cat">Descarga de mapeo de categorias</a></li>
-                    <li><a href="/download/ventas">Descarga la informacion de las ventas</a></li>
-                    <li><a href="/download/deliverys">Descarga la informacion de los deliverys</a></li>
-                    <li><a href="/download/clients">Descarga de datos de clientes</a></li>
+                    <li><a href="{{url_for('download.download_map_cat')}}">Descarga de mapeo de categorias</a></li>
+                    <li><a href="{{url_for('download.download_checkouts')}}">Descarga la informacion de las ventas</a></li>
+                    <li><a href="{{url_for('download.download_deliverys')}}">Descarga la informacion de los deliverys</a></li>
+                    <li><a href="{{url_for('download.download_clients')}}">Descarga de datos de clientes</a></li>
                 </ul>
-                <li><a href = "/update">Actualizar mapeos y productos</a></li>
+                <li><a href = "{{url_for('update.update_main')}}">Actualizar mapeos y productos</a></li>
                 <ul>
-                    <li><a href="/update/products">Actualizar productos</a></li>
-                    <li><a href="/update/products_file">Actualizacion de productos desde excel</a></li>
-                    <li><a href="/update/paris">Actualizar mapeo de atributos de Paris</a></li>
-                    <li><a href="/update/falabella">Actualizar mapeo de atributos de Falabella</a></li>
-                    <li><a href="/update/mercadolibre">Actualizar mapeo de atributos de Mercado Libre</a></li>
-                    <li><a href="/update/ripley">Actualizar mapeo de atributos de Ripley</a></li>
-                    <li><a href="/update/map_cat">Actualizar mapeo de categorias</a></li>
-                    <li><a href="/update/clients">Actualizar datos de clientes</a></li>
-                    <li><a href="/update/checkouts">Actualizar registro de ventas</a></li>
-                    <li><a href="/update/deliverys">Actualizar registro de entregas</a></li>
+                    <li><a href="{{url_for('update.update_products')}}">Actualizar productos</a></li>
+                    <li><a href="{{url_for('update.update_products_from_file')}}">Actualizacion de productos desde excel</a></li>
+                    <li><a href="{{url_for('update.update_paris')}}">Actualizar mapeo de atributos de Paris</a></li>
+                    <li><a href="{{url_for('update.update_falabella')}}">Actualizar mapeo de atributos de Falabella</a></li>
+                    <li><a href="{{url_for('update.update_mercadolibre')}}">Actualizar mapeo de atributos de Mercado Libre</a></li>
+                    <li><a href="{{url_for('update.update_ripley')}}">Actualizar mapeo de atributos de Ripley</a></li>
+                    <li><a href="{{url_for('update.update_mapcat')}}">Actualizar mapeo de categorias</a></li>
+                    <li><a href="{{url_for('update.clients_data')}}">Actualizar datos de clientes</a></li>
+                    <li><a href="{{url_for('update.update_checkouts')}}">Actualizar registro de ventas</a></li>
+                    <li><a href="{{url_for('update.update_ventas')}}">Actualizar registro de entregas</a></li>
                 </ul>
-                <li><a href="/create_update">Send data</a></li>
+                <li><a href="{{url_for('create_update.confirmation')}}">Send data</a></li>
             </ul>
 		</div>
 	</div>

@@ -38,14 +38,17 @@ def upload_data_products(df, db):
             if len(c.split("-")) > 2:
                 rename_columns.loc[len(rename_columns), :] = [c, "-".join([c.split("-")[0], c.split("-")[2]])]
                 df.columns = df.columns.where(~df.columns.str.contains(c.split("-")[1]), "-".join([c.split("-")[0], c.split("-")[2]]))
+            if 'Capacidad de los frascos para especias' in c:
+                rename_columns.loc[len(rename_columns), :] = [c, "Capacidad frascos para especias-Mercado Libre Productos (HB)"]
+                df.columns = df.columns.where(~df.columns.str.contains("Capacidad de los frascos para especias"), "Capacidad frascos para especias-Mercado Libre Productos (HB)")
 
     with engine.connect() as connection:
-        result = connection.execute(db.text("SELECT * FROM Renombre_categorias LIMIT 1"))
-        if result.first() == None:
-            rename_columns.to_sql("Renombre_categorias", engine, if_exists = "append", index=False)
-            message += "<li>Tabla 'Renombre_categorias' actualizada con exito.</li>"
-        else:
-            message += "<li>Hubo un error al actualizar 'Renombre_categorias'</li>"            
+        try:
+            rename_columns.to_sql("Renombre_categorias", engine, if_exists = "replace", index=False)
+            message += "<li>Tabla 'Renombre_categorias' actualizada con exito.</li>"  
+        except Exception as e:
+            message += f"<li>Hubo un error al actualizar 'Renombre_categorias' + {e}</li>"   
+        
 
     try:
         df.drop(df.columns[df.columns.str.contains("Material del trípode")][1], axis=1, inplace=True)
@@ -73,14 +76,11 @@ def upload_data_products(df, db):
 
     for table in tables:
         with engine.connect() as connection:
-            result = connection.execute(db.text(f"SELECT * FROM Productos_{table} LIMIT 1"))
-            if result.first() == None:
-                df[tables[table]].to_sql(f"Productos_{table}", engine, if_exists = "append", index=False)
-                message += "<li>Tabla 'Productos_{table}' populada con exito.</li>"
-            else:
-                message += "<li>La tabla 'Productos_standard' no esta vacia. Intente con insert o append filas.</li>"
-                
-    message += "</ul>"
+            try:
+                df[tables[table]].to_sql(f"Productos_{table}", engine, if_exists = "replace", index=False)
+                current_app.logger.debug(f"<li>Tabla 'Productos_{table}' populada con exito.</li>")
+            except Exception as e:
+                current_app.logger.debug(f"<li>La tabla 'Productos_{table}' tuvo un error {e}</li>")
     return message
 
 

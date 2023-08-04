@@ -333,21 +333,6 @@ def update_products(token, merchant_id):
     if diff.shape[0] == 0:
         return current_app.logger.debug("Los productos ya se encuentran actualizados.")
     
-    # Delete old data
-    stmt = db.text("DELETE FROM Productos_standard")
-    db.session.execute(stmt)
-    stmt = db.text("DELETE FROM Productos_MercadoLibre")
-    db.session.execute(stmt)
-    stmt = db.text("DELETE FROM Productos_Paris")
-    db.session.execute(stmt)
-    stmt = db.text("DELETE FROM Productos_Falabella")
-    db.session.execute(stmt)
-    stmt = db.text("DELETE FROM Productos_Ripley")
-    db.session.execute(stmt)
-    stmt = db.text("DELETE FROM Renombre_categorias")
-    db.session.execute(stmt)
-    db.session.commit()
-    
     # Replace with new data
     message = upload_data_products(df, db)
     
@@ -502,3 +487,4 @@ def upload_ids(token, merchant_id, model):
         current_app.logger.info("Successful upload customs_ids to DB.")
     else:
         current_app.logger.error(f"Error: model {model} no es valido.")
+        
