@@ -209,21 +209,6 @@ def update_products_from_file():
             # Check if data is valid
             if ~df.columns[mask].isin(db_products.columns).all():
                 return render_template("update/error.html")
-            
-            # Delete old data
-            stmt = db.text("DELETE FROM Productos_standard")
-            db.session.execute(stmt)
-            stmt = db.text("DELETE FROM Productos_MercadoLibre")
-            db.session.execute(stmt)
-            stmt = db.text("DELETE FROM Productos_Paris")
-            db.session.execute(stmt)
-            stmt = db.text("DELETE FROM Productos_Falabella")
-            db.session.execute(stmt)
-            stmt = db.text("DELETE FROM Productos_Ripley")
-            db.session.execute(stmt)
-            stmt = db.text("DELETE FROM Renombre_categorias")
-            db.session.execute(stmt)
-            db.session.commit()
 
             # Replace with new data
             message = upload_data_products(df, db)
@@ -237,30 +222,14 @@ def update_products_from_file():
 @update.get("/clients")
 @auth_required("basic")
 def clients_data():
-    # Retrieve data from the available marketplaces
-    fl_customers = get_data_falabella(current_app.config["FALABELLA_USER"], current_app.config["FALABELLA_API_KEY"])
-    if type(fl_customers) == str:
-        return fl_customers
-    pr_customers = get_data_paris(current_app.config["PARIS_API_KEY"])
-    if type(pr_customers) == str:
-        return pr_customers
-    rp_customers = get_data_ripley(current_app.config["RIPLEY_API_KEY"])
-    if type(rp_customers) == str:
-        return rp_customers
     
-    data = pd.concat([pr_customers, fl_customers, rp_customers], axis=0)
-    data.reset_index(drop=True, inplace=True)
-    # Check if already exists and add to DB
-    for i, row in data.iterrows():
-        customer = clients(id = i, name=row["Name"], mail=row["Mail"], phone=row["Phone"], items=row["Items"])
-        c = db.session.get(clients, i)
-        if c == None:
-            db.session.add(customer)
-        elif c.name == customer.name:
-            continue
-        else:
-            c = customer
-    db.session.commit()
+    fu = current_app.config["FALABELLA_USER"]
+    fak = current_app.config["FALABELLA_API_KEY"]
+    pak = current_app.config["PARIS_API_KEY"]
+    rak = current_app.config["RIPLEY_API_KEY"]
+    
+    current_app.logger.debug("Sending to worker task: update_checkouts")
+    celery.send_task("App.task.long_task.update_clients", [fu, fak, pak, rak])
     
     return render_template("update/success_client.html")
 

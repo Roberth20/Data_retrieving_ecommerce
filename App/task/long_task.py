@@ -5,21 +5,14 @@ import pandas as pd
 import json
 from App.models.checkouts import checkouts, deliverys
 from App.extensions.db import db
+from App.models.clients import clients
 import numpy as np
-from App.update.funcs import check_difference_and_update_checkouts
-from App.update.funcs import check_diferences_and_update_deliverys
 from flask import current_app
 from App.models.productos import get_products
 from App.get_data.Populate_tables import upload_data_products
 from App.models.auth import auth_app
 from App.models.ids import ids, customs_ids
-from App.update.funcs import get_customs_attributes
-from App.update.funcs import get_data_brands
-from App.update.funcs import get_data_warranties
-from App.update.funcs import get_data_tags
-from App.update.funcs import get_data_colors
-from App.update.funcs import get_data_categories
-from App.update.funcs import get_data_size
+from App.update.funcs import *
 from App.models.mapeo_atributos import * 
 from App.models.atributos_market import * 
 from App.models.mapeo_categorias import Mapeo_categorias
@@ -537,3 +530,34 @@ def prepare_excel():
     products.style.applymap_index(col_color, axis=1)\
             .apply(missing_info, maps=maps, atts = atts, map_att=map_att, std_transformation=std_transformation, axis=1)\
             .to_excel("App/output.xlsx", index=False)
+    
+@celery.task
+def update_clients(fu, fak, pak, rak):
+    # Retrieve data from the available marketplaces
+    current_app.logger.info("Retrieving data of clients from Falabella")
+    fl_customers = get_data_falabella(fu, fak)
+    if type(fl_customers) == str:
+        return fl_customers
+    current_app.logger.info("Retrieving data of clients from Paris")
+    pr_customers = get_data_paris(pak)
+    if type(pr_customers) == str:
+        return pr_customers
+    current_app.logger.info("Retrieving data of clients from Ripley")
+    rp_customers = get_data_ripley(rak)
+    if type(rp_customers) == str:
+        return rp_customers
+    
+    current_app.logger.info("Uploading to db")
+    data = pd.concat([pr_customers, fl_customers, rp_customers], axis=0)
+    data.reset_index(drop=True, inplace=True)
+    # Check if already exists and add to DB
+    for i, row in data.iterrows():
+        customer = clients(id = i, name=row["Name"], mail=row["Mail"], phone=row["Phone"], items=row["Items"])
+        c = db.session.get(clients, i)
+        if c == None:
+            db.session.add(customer)
+        elif c.name == customer.name:
+            continue
+        else:
+            c = customer
+    db.session.commit()
