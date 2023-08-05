@@ -20,6 +20,10 @@ from App.update.funcs import get_data_tags
 from App.update.funcs import get_data_colors
 from App.update.funcs import get_data_categories
 from App.update.funcs import get_data_size
+from App.models.mapeo_atributos import * 
+from App.models.atributos_market import * 
+from App.models.mapeo_categorias import Mapeo_categorias
+from App.download.help_func import col_color, missing_info
 
 @celery.task
 def celery_long_task(duration):
@@ -336,6 +340,8 @@ def update_products(token, merchant_id):
     # Replace with new data
     message = upload_data_products(df, db)
     
+    celery.send_task("App.task.long_task.prepare_excel")
+    
     
 @celery.task
 def update_db():
@@ -366,7 +372,8 @@ def update_db():
     last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
     
     current_app.logger.info("Updating Checkouts")
-    update_checkouts.delay(token, current_app.config['MERCHANT_ID'], last, now)
+    celery.send_task("App.task.long_task.update_checkouts", [token, current_app.config["MERCHANT_ID"], last, now])
+    #update_checkouts.delay(token, current_app.config['MERCHANT_ID'], last, now)
     
     # Last time updated
     result = db.session.scalar(db.select(deliverys).order_by(deliverys.fecha_despacho.desc()))
@@ -375,7 +382,8 @@ def update_db():
     last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
     
     current_app.logger.info("Updating Deliverys")
-    update_deliverys.delay(token, current_app.config['MERCHANT_ID'], last, now)
+    celery.send_task("App.task.long_task.update_deliverys", [token, current_app.config["MERCHANT_ID"], last, now])
+    #update_deliverys.delay(token, current_app.config['MERCHANT_ID'], last, now)
 
     
 @celery.task
@@ -488,3 +496,44 @@ def upload_ids(token, merchant_id, model):
     else:
         current_app.logger.error(f"Error: model {model} no es valido.")
         
+@celery.task
+def prepare_excel():
+    current_app.logger.info("Retrieving data of products from DB")
+    # Load products
+    products = get_products()
+    
+    # Cargamos los mapeos
+    map_att =  {"PR": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Paris.query.all()], 
+                      columns=["Mapeo", "Atributo"]), 
+                "RP": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Ripley.query.all()], 
+                      columns=["Mapeo", "Atributo"]),
+                "MLC": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_MercadoLibre.query.all()], 
+                      columns=["Mapeo", "Atributo"]), 
+                "FL": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Falabella.query.all()], 
+                      columns=["Mapeo", "Atributo"])}
+    
+    atts = {"MLC": pd.DataFrame([[m.Label, m.AttributeType, m.Category] for m in Atributos_MercadoLibre.query.all()],
+                               columns = ["Label", "Value", "Category"]),
+           "FL": pd.DataFrame([[m.Label, m.Options, m.Category] for m in Atributos_Falabella.query.all()],
+                             columns = ["Label", "Values", "Category"]),
+           "RP": pd.DataFrame([[m.Label, m.Category] for m in Atributos_Ripley.query.all()],
+                             columns = ["Label", "Category"]),
+           "PR": pd.DataFrame([[m.Label, m.Family] for m in Atributos_Paris.query.all()],
+                             columns = ["Label", "Category"])}
+    
+    maps = pd.DataFrame([[m.Multivende, m.MercadoLibre, m.Falabella, m.Ripley, m.Paris, m.Paris_Familia] 
+                        for m in Mapeo_categorias.query.all()], 
+                        columns = ["Multivende", "MercadoLibre", "Falabella", "Ripley", "Paris", "Paris Familia"])
+    std_transformation = pd.DataFrame({
+        "Original": products.columns[:20],
+        "Nuevo": ["Temporada", "Modelo", "Descripción", "Descripción html", "Descripción corta",
+                  "Descripción corta html", "Garantía", "Marca", "Nombre", "Categoría de producto",
+                 "Nombre Sku", "Color", "Tamaño", "SKU", "SKU interno", "Ancho", "Largo",
+                 "Alto", "Peso", "tags"]
+    })
+    std_transformation.loc[len(std_transformation), :] = ["size", "Talla"]
+    products.reset_index(inplace=True)
+    
+    products.style.applymap_index(col_color, axis=1)\
+            .apply(missing_info, maps=maps, atts = atts, map_att=map_att, std_transformation=std_transformation, axis=1)\
+            .to_excel("App/output.xlsx", index=False)

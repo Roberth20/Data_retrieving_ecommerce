@@ -1,16 +1,16 @@
 """Modulo de manejo para todas las descargas"""
 # Import all the stuff
-from flask import render_template, Response, current_app
+from flask import render_template, Response, current_app, send_file
 from App.download import download
 import pandas as pd
 from App.models.mapeo_atributos import * 
 from App.models.mapeo_categorias import Mapeo_categorias
 from App.models.productos import get_products
-from App.models.atributos_market import * 
 from App.models.clients import clients
 from App.models.checkouts import checkouts, deliverys
-from App.download.help_func import col_color, missing_info
 from flask_security import auth_required
+from App.models.atributos_market import * 
+from App.download.help_func import col_color, missing_info
 import io
 
 @download.get("/")
@@ -18,60 +18,64 @@ import io
 def index():
     return render_template("download/main.html")
 
+#@download.get("/products_test")
+#def dpt():
+ #   current_app.logger.info("Retrieving data of products from DB")
+    # Load products
+  #  products = get_products()
+    
+    # Cargamos los mapeos
+   # map_att =  {"PR": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Paris.query.all()], 
+    #                  columns=["Mapeo", "Atributo"]), 
+     #           "RP": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Ripley.query.all()], 
+      #                columns=["Mapeo", "Atributo"]),
+       #         "MLC": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_MercadoLibre.query.all()], 
+        #              columns=["Mapeo", "Atributo"]), 
+         #       "FL": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Falabella.query.all()], 
+          #            columns=["Mapeo", "Atributo"])}
+    
+#    atts = {"MLC": pd.DataFrame([[m.Label, m.AttributeType, m.Category] for m in Atributos_MercadoLibre.query.all()],
+#                               columns = ["Label", "Value", "Category"]),
+#           "FL": pd.DataFrame([[m.Label, m.Options, m.Category] for m in Atributos_Falabella.query.all()],
+#                             columns = ["Label", "Values", "Category"]),
+#           "RP": pd.DataFrame([[m.Label, m.Category] for m in Atributos_Ripley.query.all()],
+#                             columns = ["Label", "Category"]),
+#           "PR": pd.DataFrame([[m.Label, m.Family] for m in Atributos_Paris.query.all()],
+#                             columns = ["Label", "Category"])}
+    
+#    maps = pd.DataFrame([[m.Multivende, m.MercadoLibre, m.Falabella, m.Ripley, m.Paris, m.Paris_Familia] 
+#                        for m in Mapeo_categorias.query.all()], 
+#                        columns = ["Multivende", "MercadoLibre", "Falabella", "Ripley", "Paris", "Paris Familia"])
+#    std_transformation = pd.DataFrame({
+#        "Original": products.columns[:20],
+#        "Nuevo": ["Temporada", "Modelo", "Descripción", "Descripción html", "Descripción corta",
+#                  "Descripción corta html", "Garantía", "Marca", "Nombre", "Categoría de producto",
+#                 "Nombre Sku", "Color", "Tamaño", "SKU", "SKU interno", "Ancho", "Largo",
+#                 "Alto", "Peso", "tags"]
+#    })
+#    std_transformation.loc[len(std_transformation), :] = ["size", "Talla"]
+#    products.reset_index(inplace=True)
+    
+#    buffer = io.BytesIO()
+#    
+#    products.style.applymap_index(col_color, axis=1)\
+#            .apply(missing_info, maps=maps, atts = atts, map_att=map_att, std_transformation=std_transformation, axis=1)\
+#            .to_excel("output.xlsx", index=False)
+    
+    #headers = {
+      #  'Content-Disposition': 'attachment; filename=output.xlsx',
+     #   'Content-type': 'application/vnd.ms-excel'
+    #}
+    #return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)
+#    return "hello"
+    
+
+
 @download.get("/products")
 @auth_required("basic")
 def download_products():
-    current_app.logger.info("Retrieving data of products from DB")
-    # Load products
-    products = get_products()
-    # Cargamos los mapeos
-    map_att =  {"PR": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Paris.query.all()], 
-                      columns=["Mapeo", "Atributo"]), 
-                "RP": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Ripley.query.all()], 
-                      columns=["Mapeo", "Atributo"]),
-                "MLC": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_MercadoLibre.query.all()], 
-                      columns=["Mapeo", "Atributo"]), 
-                "FL": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Falabella.query.all()], 
-                      columns=["Mapeo", "Atributo"])}
+    return send_file("output.xlsx")
     
-    atts = {"MLC": pd.DataFrame([[m.Label, m.AttributeType, m.Category] for m in Atributos_MercadoLibre.query.all()],
-                               columns = ["Label", "Value", "Category"]),
-           "FL": pd.DataFrame([[m.Label, m.Options, m.Category] for m in Atributos_Falabella.query.all()],
-                             columns = ["Label", "Values", "Category"]),
-           "RP": pd.DataFrame([[m.Label, m.Category] for m in Atributos_Ripley.query.all()],
-                             columns = ["Label", "Category"]),
-           "PR": pd.DataFrame([[m.Label, m.Family] for m in Atributos_Paris.query.all()],
-                             columns = ["Label", "Category"])}
-    
-    maps = pd.DataFrame([[m.Multivende, m.MercadoLibre, m.Falabella, m.Ripley, m.Paris, m.Paris_Familia] 
-                        for m in Mapeo_categorias.query.all()], 
-                        columns = ["Multivende", "MercadoLibre", "Falabella", "Ripley", "Paris", "Paris Familia"])
-    std_transformation = pd.DataFrame({
-        "Original": products.columns[:20],
-        "Nuevo": ["Temporada", "Modelo", "Descripción", "Descripción html", "Descripción corta",
-                  "Descripción corta html", "Garantía", "Marca", "Nombre", "Categoría de producto",
-                 "Nombre Sku", "Color", "Tamaño", "SKU", "SKU interno", "Ancho", "Largo",
-                 "Alto", "Peso", "tags"]
-    })
-    std_transformation.loc[len(std_transformation), :] = ["size", "Talla"]
-    products.reset_index(inplace=True)
-    
-    current_app.logger.info("Sending excel with products")
-    # Preparamos el buffer
-    buffer = io.BytesIO()
-    # Generamos la tabla de datos con los colores y filtros adecuados
-    #
-    # La funcion missing_info dedicada a la logica del color puede sser consultada
-    # en el documento func.py
-    products.style.applymap_index(col_color, axis=1)\
-            .apply(missing_info, maps=maps, atts = atts, map_att=map_att, std_transformation=std_transformation, axis=1)\
-            .to_excel(buffer, index=False)
-    headers = {
-        'Content-Disposition': 'attachment; filename=output.xlsx',
-        'Content-type': 'application/vnd.ms-excel'
-    }
-    return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)
-
 
 ############################################################################################
 # Sub-menu to download maps
