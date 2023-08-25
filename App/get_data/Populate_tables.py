@@ -60,7 +60,7 @@ def upload_data_products(df, db):
     except:
         current_app.logger.info("The column: Número de focos-Ripley Productos. NO se encuentra en el dataframe")
 
-    std = df.columns[:21]
+    std = df.columns[:23]
     mlc = df.columns[df.columns.str.contains("Mercado Libre")]
     fl = df.columns[df.columns.str.contains("Falabella")]
     rp = df.columns[df.columns.str.contains("Ripley")]

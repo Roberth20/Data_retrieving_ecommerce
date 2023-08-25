@@ -208,6 +208,7 @@ def update_products_from_file():
             mask = ~df.columns.isin(["IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"])
             # Check if data is valid
             if ~df.columns[mask].isin(db_products.columns).all():
+                print(df.shape, db_products.shape)
                 return render_template("update/error.html")
 
             # Replace with new data
@@ -250,7 +251,7 @@ def update_checkouts():
     
     # Last time updated
     result = db.session.scalar(db.select(checkouts).order_by(checkouts.fecha.desc()))
-    last_update = result.fecha - timedelta(days=28) # One month before to update changes of recents sells
+    last_update = result.fecha - timedelta(days=1) # One week before to update changes of recents sells
     now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
     last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
     
@@ -275,7 +276,7 @@ def update_ventas():
     
     # Last time updated
     result = db.session.scalar(db.select(deliverys).order_by(deliverys.fecha_despacho.desc()))
-    last_update = result.fecha_despacho - timedelta(days=28) # One month before to update changes of recents sells
+    last_update = result.fecha_despacho - timedelta(days=1) # One week before to update changes of recents sells
     now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
     last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
     

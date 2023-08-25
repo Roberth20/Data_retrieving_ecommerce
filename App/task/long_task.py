@@ -77,6 +77,9 @@ def update_deliverys(token, merchant_id, last, now):
     # Create dataframe and adjust formats
     df = pd.DataFrame(data)
     df.fillna(np.nan, inplace=True)
+    if df.shape[0] == 0:
+        print("There are not delivery data to load")
+        return
     df["fecha despacho"] = pd.to_datetime(df["fecha despacho"])
     df["fecha despacho"] = df["fecha despacho"].dt.tz_convert(None)
     df["fecha promesa"] = pd.to_datetime(df["fecha promesa"])
@@ -360,7 +363,7 @@ def update_db():
     
     # Last time updated
     result = db.session.scalar(db.select(checkouts).order_by(checkouts.fecha.desc()))
-    last_update = result.fecha - timedelta(days=28) # One month before to update changes of recents sells
+    last_update = result.fecha - timedelta(days=1) # One week before to update changes of recents sells
     now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
     last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
     
@@ -370,13 +373,39 @@ def update_db():
     
     # Last time updated
     result = db.session.scalar(db.select(deliverys).order_by(deliverys.fecha_despacho.desc()))
-    last_update = result.fecha_despacho - timedelta(days=28) # One month before to update changes of recents sells
+    last_update = result.fecha_despacho - timedelta(days=1) # One week before to update changes of recents sells
     now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
     last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
     
     current_app.logger.info("Updating Deliverys")
     celery.send_task("App.task.long_task.update_deliverys", [token, current_app.config["MERCHANT_ID"], last, now])
     #update_deliverys.delay(token, current_app.config['MERCHANT_ID'], last, now)
+    
+@celery.task
+def update_products_and_ids():
+    from datetime import datetime
+    from App.auth.funcs import decrypt
+    
+    last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
+    # Check if token exists
+    if last_auth == None:
+        current_app.logger.info("There is not token available.")
+        return
+    diff = datetime.utcnow() - last_auth.expire
+    # Check is token expired
+    if diff.total_seconds()/3600 > 6:
+        current_app.logger.info("The token expired.")
+        return
+    # Decrypt token
+    token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
+    current_app.logger.info("Updating Ids")
+    celery.send_task("App.task.long_task.upload_ids", [token, current_app.config["MERCHANT_ID"], "ids"])
+    
+    current_app.logger.info("Updating customs ids")
+    celery.send_task("App.task.long_task.upload_ids", [token, current_app.config["MERCHANT_ID"], "customs_ids"])
+    
+    current_app.logger.info("Updating products")
+    celery.send_task("App.task.long_task.update_products", [token, current_app.config["MERCHANT_ID"]])
 
     
 @celery.task

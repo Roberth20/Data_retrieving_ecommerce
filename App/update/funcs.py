@@ -529,9 +529,10 @@ def get_customs_attributes(token, merchant_id):
                 continue
             for op in ca["CustomAttributeOptions"]:
                 custom_att_op = custom_att_p.copy()
-                custom_att_op["option_name"] = op["code"]
+                custom_att_op["option_name"] = op["name"]
                 custom_att_op["option_id"] = op["_id"]
                 info_p.append(custom_att_op)
+                
                 
     dfp = pd.DataFrame(info_p)
                 
@@ -558,7 +559,7 @@ def get_customs_attributes(token, merchant_id):
                 continue
             for op in ca["CustomAttributeOptions"]:
                 custom_att_op = custom_att_p.copy()
-                custom_att_op["option_name"] = op["code"]
+                custom_att_op["option_name"] = op["name"]
                 custom_att_op["option_id"] = op["_id"]
                 info_pv.append(custom_att_op)
                 

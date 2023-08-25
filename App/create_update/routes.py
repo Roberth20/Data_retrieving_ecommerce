@@ -57,18 +57,27 @@ def send_form():
                                  c.option_name] for c in customs_ids.query.all()],
                                columns = ["id_set", "name_set", "id", "name", "option_id",
                                          "option_name"])
-    std = products.columns[:20]
+    std = products.columns[:21]
     
+    current_app.logger.info("Preparing data to send json of products")
     # Prepare to send data of each product on the database
     message = ""
+    data = {}
+    markets = ["Ripley", "Falabella", 'Paris', 'MercadoLibre']
     for i in range(products.shape[0]):
         # Get product
-        p = products.iloc[i, :].copy()
+        p = products.iloc[2, :].copy()
         p = p.fillna(np.nan)
-        
-        # Get data in better format to work
-        current_app.logger.info("Preparing data to send json of products")
-        custom_p, custom_v = get_serialized_data(p, customs_data, std)
+        # Set variable for the customs attribute by marketplace
+        customs_att = {}
+        for m in markets:
+            # Get the data ready to sent from attribute by market
+            custom_p, custom_v = get_serialized_data(p, customs_data, std, m)
+            if type(custom_p) == str:
+                current_app.logger.info(f"Aborting by {custom_p}, {p.name[0]}")
+                return render_template("create_update/error.html", message = f"Cancelando envio por {custom_p}")
+                #print(" ".join(custom_v.split("_")))
+            customs_att[m] = custom_p, custom_v
         
         # Preparing all info to be inserted in the upload template
         tags = []
@@ -85,13 +94,14 @@ def send_form():
             warranty = id_data["id"][id_data["name"] == p["Warranty"]].values[0]
         size = None
         if pd.notna(p["size"]):
-            size = id_data["id"][id_data["name"] == p["size"]].values[0]
+            size = id_data["id"][(id_data["name"] == p["size"]) & (id_data["type"] == "size")].values[0]
         brand = None
         if pd.notna(p["Brand"]):
             try:
                 brand =  id_data["id"][id_data["name"] == p["Brand"]].values[0]
             except:
                 current_app.logger.info(f"ID of brand: {p['Brand']} not in database")
+                #return render_template("create_update/error.html", message = f"Cancelando envio por: ID of brand: {p['Brand']} not in database")
         color = None
         if pd.notna(p["color"]):
             color =  id_data["id"][id_data["name"] == p["color"]].values[0]
@@ -108,7 +118,7 @@ def send_form():
             {
               "_id": p.name[1],
               "code": p["sku"],
-              "SizeId": size,
+              #"SizeId": size,
               "ColorId": color,
               "status": "created",
               "internalCode": p["internalSku"],
@@ -129,7 +139,8 @@ def send_form():
                 "_id": color,
                 "name": p["color"]
               },
-              "CustomAttributeValues": custom_v,
+                "custom_v":0,
+              #"CustomAttributeValues": custom_v,
               #"allImages": [],
               "InventoryTypeId": "791a6654-c5f2-11e6-aad6-2c56dc130c0d",
               "isDefaultVerson":True
@@ -146,32 +157,51 @@ def send_form():
           "tags": tags,
           "WarrantyId": warranty,
           "ShippingClassId": None,
-          "CustomAttributeValues": custom_p,
+          "custom_p":0,
+          #"CustomAttributeValues": custom_p,
           "InventoryTypeId": "791a6654-c5f2-11e6-aad6-2c56dc130c0d",
           "InternalCodeTypeId": None,
           "status": "created"
         })
+        
+        # Add customs attributes values separated by marketplace with valid format
+        t = ""
+        v = ""
+        for x in [customs_att[k][0] for k in customs_att.keys() if customs_att[k][0] != {}]:
+            t += '"CustomAttributeValues":'+json.dumps(x)+", "
+
+        for y in [customs_att[k][1] if customs_att[k][1] != {} else 0 for k in customs_att.keys()]:
+            if y == 0:
+                continue
+            v += '"CustomAttributeValues":'+json.dumps(y)+", "
+
+        payload = payload.replace('"custom_p": 0,', t)
+        payload = payload.replace('"custom_v": 0,', v)
+        
+        data[p.name[0]] = payload
+    
+    current_app.logger.info("Sending request PUT to update products at Multivende") # UPDATE
+    for k in data.keys():
         headers = {
           'Content-Type': 'application/json',
           'Authorization': f'Bearer {token}'
         }
         # Sending request 
-        url = f"https://app.multivende.com/api/products/{p.name[0]}" # UPDATE
+        url = f"https://app.multivende.com/api/products/{k}" # UPDATE
         #url = f"https://app.multivende.com/api/m/{current_app.config['MERCHANT_ID']}/products" # CREATE 
-        #current_app.logger.info("Sending request POST to update products at Multivende") 
-        current_app.logger.info("Sending request PUT to update products at Multivende")
-        #response = requests.request("PUT", url, headers=headers, data=payload) # UPDATE
-        #response = requests.request("POST", url, headers=headers, data=payload)
+        #current_app.logger.info("Sending request POST to update products at Multivende") # CREATE
+        response = requests.request("PUT", url, headers=headers, data=data[k]) # UPDATE
+        #print(response.status_code)
+        #response = requests.request("POST", url, headers=headers, data=payload) # CREATE
         # Check there was an error and abort sending data
-        #if response.status_code != 201:
-         #   current_app.logger.error(f"Aborting sending data for reason: {response.reason}")
-          #  message = response.reason + " " + p["name"] + " " + response.text + " " + response.request.body
-           # return render_template("create_update/error.html", message=message)
-        
-        message += p["name"] + " OK"
-    
+        if response.status_code != 201:
+            current_app.logger.error(f"Aborting sending data for reason: {response.reason}")
+            message = response.reason + " " + p["name"] + " " + response.text
+            return render_template("create_update/error.html", message=message)
+        else:
+            message += p["name"] + " OK \n"
     current_app.logger.info("Data sent without problems")
-    return message#render_template("create_update/success.html")
+    return render_template("create_update/success.html")
 
 # Endpoint to prepare data and upload
 @cupdate.get("/send_test")

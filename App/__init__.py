@@ -71,13 +71,17 @@ def configure_celery(app: Flask) -> Celery:
     celery.celery.conf.update(app.config)
     celery.celery.conf.update(broker_url = app.config["BROKER_URL"], broker_transport_options={"visibility_timeout":300})
     celery.celery.conf.beat_schedule = {
-        "add-every-day":{
+        "add-every-hour":{
             "task":"App.task.long_task.update_db",
-            "schedule": crontab(minute=10, hour="*/4")
+            "schedule": crontab(minute=10, hour="*/1")
         },
         "add-every-4-hours":{
             "task":"App.task.long_task.update_token",
             "schedule": crontab(minute= 0 , hour="*/4")
+        },
+        "add-every-day":{
+            "task":"App.task.long_task.update_products_and_ids",
+            "schedule": crontab(minute=30, hour="4")
         }
     }
     celery.celery.Task = ContextTask
