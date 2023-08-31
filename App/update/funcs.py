@@ -522,7 +522,7 @@ def get_customs_attributes(token, merchant_id):
             custom_att_p = custom_att.copy()
             custom_att_p["id"] = ca["_id"]
             custom_att_p["name"] = ca["name"]
-            if len(ca["CustomAttributeOptions"]) == 0:
+            if ca["CustomAttributeTypeId"] != '763c2831-b9af-462f-8974-d401f358949c':
                 custom_att_p["option_name"] = None
                 custom_att_p["option_id"] = None
                 info_p.append(custom_att_p)
@@ -552,7 +552,7 @@ def get_customs_attributes(token, merchant_id):
             custom_att_p = custom_att.copy()
             custom_att_p["id"] = ca["_id"]
             custom_att_p["name"] = ca["name"]
-            if len(ca["CustomAttributeOptions"]) == 0:
+            if ca["CustomAttributeTypeId"] != '763c2831-b9af-462f-8974-d401f358949c':
                 custom_att_p["option_name"] = None
                 custom_att_p["option_id"] = None
                 info_pv.append(custom_att_p)

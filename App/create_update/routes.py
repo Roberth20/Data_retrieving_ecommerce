@@ -31,7 +31,7 @@ def confirmation():
 @auth_required("basic")
 def send_form():
     # Get the last token info registed on the DB
-    current_app.logger.info("Retrieving Token")
+    current_app.logger.debug("Retrieving Token")
     last_auth = db.session.scalars(db.select(auth_app).order_by(auth_app.expire.desc())).first()
     diff = datetime.utcnow() - last_auth.expire
     
@@ -42,14 +42,14 @@ def send_form():
     
     # Check if the token expired (after 6 hours)
     if diff.total_seconds()/3600 > 6:
-        current_app.logger.info("The token expired.")
+        current_app.logger.debug("The token expired.")
         return render_template("update/token_error.html")
     
     # Decrypt token
     token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
     
     # Load data
-    current_app.logger.info("Getting data of products to send.")
+    current_app.logger.debug("Getting data of products to send.")
     products = get_products()
     id_data = pd.DataFrame([[i.id, i.name, i.type] for i in ids.query.all()],
                           columns = ["id", "name", "type"])
@@ -59,22 +59,25 @@ def send_form():
                                          "option_name"])
     std = products.columns[:21]
     
-    current_app.logger.info("Preparing data to send json of products")
+    current_app.logger.debug("Preparing data to send json of products")
     # Prepare to send data of each product on the database
     message = ""
     data = {}
     markets = ["Ripley", "Falabella", 'Paris', 'MercadoLibre']
     for i in range(products.shape[0]):
         # Get product
-        p = products.iloc[2, :].copy()
+        p = products.iloc[i, :].copy()
         p = p.fillna(np.nan)
+        #if p.name[0] == "a3409a4a-e181-4cb1-a09b-8af0f5968e55":
+         #   print(f"Pasando {p['name']}")
+          #  continue
         # Set variable for the customs attribute by marketplace
         customs_att = {}
         for m in markets:
             # Get the data ready to sent from attribute by market
             custom_p, custom_v = get_serialized_data(p, customs_data, std, m)
             if type(custom_p) == str:
-                current_app.logger.info(f"Aborting by {custom_p}, {p.name[0]}")
+                current_app.logger.debug(f"Aborting by {custom_p}, {p.name[0]}")
                 return render_template("create_update/error.html", message = f"Cancelando envio por {custom_p}")
                 #print(" ".join(custom_v.split("_")))
             customs_att[m] = custom_p, custom_v
@@ -100,8 +103,8 @@ def send_form():
             try:
                 brand =  id_data["id"][id_data["name"] == p["Brand"]].values[0]
             except:
-                current_app.logger.info(f"ID of brand: {p['Brand']} not in database")
-                #return render_template("create_update/error.html", message = f"Cancelando envio por: ID of brand: {p['Brand']} not in database")
+                current_app.logger.debug(f"ID of brand: {p['Brand']} not in database")
+                return render_template("create_update/error.html", message = f"Cancelando envio por: ID of brand: {p['Brand']} not in database")
         color = None
         if pd.notna(p["color"]):
             color =  id_data["id"][id_data["name"] == p["color"]].values[0]
@@ -180,7 +183,7 @@ def send_form():
         
         data[p.name[0]] = payload
     
-    current_app.logger.info("Sending request PUT to update products at Multivende") # UPDATE
+    current_app.logger.debug("Sending request PUT to update products at Multivende") # UPDATE
     for k in data.keys():
         headers = {
           'Content-Type': 'application/json',
@@ -200,7 +203,7 @@ def send_form():
             return render_template("create_update/error.html", message=message)
         else:
             message += p["name"] + " OK \n"
-    current_app.logger.info("Data sent without problems")
+    current_app.logger.debug("Data sent without problems")
     return render_template("create_update/success.html")
 
 # Endpoint to prepare data and upload

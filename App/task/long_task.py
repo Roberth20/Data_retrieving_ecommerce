@@ -208,7 +208,6 @@ def update_products(token, merchant_id):
                 "size", "sku", "internalSku", "width", "length", "height", "weight", "IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO", "tags", "picture"]
     # Transformamos los nombres para mayor comodidad
     att_names = [item["name"]+"-"+item["CustomAttributeSet.name"] for item in att]
-    att_short_names = [item["name"] for item in att]
     
     # Obtenemos la lista de todos los productos.
     current_app.logger.debug("Solicitando productos")
@@ -239,7 +238,8 @@ def update_products(token, merchant_id):
     for d in data:
         tmp_dict = {}
         for at in d["CustomAttributeValues"]:
-            tmp_dict[at["CustomAttribute"]["name"]] =  at["text"]
+            name = at["CustomAttribute"]['name']+"-"+at["CustomAttribute"]['CustomAttributeSet']['name']
+            tmp_dict[name] =  at["text"]
 
         tmp_dict["tags"] = []
         for tag in d["ProductTags"]:
@@ -292,7 +292,8 @@ def update_products(token, merchant_id):
             j = i.copy()
             tmp_dict = {}
             for at in pv["CustomAttributeValues"]:
-                tmp_dict[at["CustomAttribute"]["name"]] =  at["text"]
+                name = at["CustomAttribute"]['name']+"-"+at["CustomAttribute"]['CustomAttributeSet']['name']
+                tmp_dict[name] =  at["text"]
             pv.pop("CustomAttributeValues")
             j = j | tmp_dict
             j["color"] = pv["Color"]["name"]
@@ -308,8 +309,7 @@ def update_products(token, merchant_id):
             all_data.append(j)
 
     # Generamos la tabla de datos
-    df = pd.DataFrame(all_data, columns = att_std + att_short_names)
-    df.columns = att_std + att_names
+    df = pd.DataFrame(all_data, columns = att_std + att_names)
 
     # Limpiamos atributos de informacion que no es relavante o complementaria
     # de la base de datos de multivende
@@ -512,6 +512,23 @@ def upload_ids(token, merchant_id, model):
                 c_ids = customs_ids(id_set = row["id_set"], name_set = row["name_set"], id = row["id"],
                                    name = row["name"], option_name = row["option_name"], option_id = row["option_id"])
                 db.session.add(c_ids)
+            else:
+                if row["option_id"]:
+                    stmt = (
+                        db.update(customs_ids)
+                        .where(customs_ids.option_id == row["option_id"])
+                        .values(id_set = row["id_set"], name_set = row["name_set"], id = row["id"],
+                                name = row["name"], option_name = row["option_name"], option_id = row["option_id"])
+                    )
+                    db.session.execute(stmt)
+                else:
+                    stmt = (
+                        db.update(customs_ids)
+                        .where(customs_ids.id == row["id"])
+                        .values(id_set = row["id_set"], name_set = row["name_set"], id = row["id"],
+                                name = row["name"], option_name = row["option_name"], option_id = row["option_id"])
+                    )
+                    db.session.execute(stmt)
         db.session.commit()
         
         current_app.logger.info("Successful upload customs_ids to DB.")
