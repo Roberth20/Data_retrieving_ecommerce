@@ -452,7 +452,7 @@ def get_data_categories(token, merchant_id):
     pages = response["pagination"]["total_pages"]
     data = []
     for p in range(pages):
-        url = f"https://app.multivende.com/api/m/{merchant_id}/product-categories/p/{p}"
+        url = f"https://app.multivende.com/api/m/{merchant_id}/product-categories/p/{p+1}"
         headers = {
                 'Authorization': f'Bearer {token}'
             }
