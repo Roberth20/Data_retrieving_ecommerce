@@ -325,18 +325,24 @@ def update_products(token, merchant_id):
     # Limpiamos columnas duplicadas
     df.drop(columns = df.columns[df.columns.duplicated()], inplace =True)
     data = get_products()
-    df2 = df.set_index(["IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"])
-    #df = df[df.columns[df.columns.isin(data.columns)]]
-    #df.to_excel("test_products.xlsx")
-    diff = df2[~df2.isin(data)].dropna(how="all")
+    if type(data) != str:
+        df2 = df.set_index(["IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"])
+        #df = df[df.columns[df.columns.isin(data.columns)]]
+        #df.to_excel("test_products.xlsx")
+        diff = df2[~df2.isin(data)].dropna(how="all")
     
-    if diff.shape[0] == 0:
-        return current_app.logger.debug("Los productos ya se encuentran actualizados.")
+        if diff.shape[0] != 0:
+            # Replace with new data
+            message = upload_data_products(df, db)
+        
+        current_app.logger.debug("Los productos ya se encuentran actualizados.")
+    else:
+        current_app.logger.debug("Hay tablas faltantes, intentando crearlas.")
+        # Replace with new data
+        message = upload_data_products(df, db)
     
-    # Replace with new data
-    message = upload_data_products(df, db)
     
-    celery.send_task("App.task.long_task.prepare_excel")
+    #celery.send_task("App.task.long_task.prepare_excel")
     
     
 @celery.task

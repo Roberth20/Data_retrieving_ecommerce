@@ -23,24 +23,14 @@ def upload_data_products(df, db):
     rename_columns = pd.DataFrame(columns = ["Viejo", "Nuevo"])
     for c in df.columns:
         if len(c) > 64:
-            if "netbook" in c:
-                rename_columns.loc[len(rename_columns), :] = [c, "Tamaño máximo de la notebook-Mercado Libre Productos (HB)"]
-                df.columns = df.columns.where(~df.columns.str.contains("netbook"), "Tamaño máximo de la notebook-Mercado Libre Productos (HB)")
-                continue
-            if "RESISTANCE_BAND" in c:
-                rename_columns.loc[len(rename_columns), :] = [c, "RESISTANCE_BAND_WITH_HANDLES-Mercado Libre Productos (HB)"]
-                df.columns = df.columns.where(~df.columns.str.contains("RESISTANCE_BAND"), "RESISTANCE_BAND_WITH_HANDLES-Mercado Libre Productos (HB)")
-                continue
-            if "vajilla" in c:
-                rename_columns.loc[len(rename_columns), :] = [c, "Material del escurridor de vajilla-Mercado Libre Productos (HB)"]
-                df.columns = df.columns.where(~df.columns.str.contains("vajilla"), "Material del escurridor de vajilla-Mercado Libre Productos (HB)")
-                continue
-            if len(c.split("-")) > 2:
-                rename_columns.loc[len(rename_columns), :] = [c, "-".join([c.split("-")[0], c.split("-")[2]])]
-                df.columns = df.columns.where(~df.columns.str.contains(c.split("-")[1]), "-".join([c.split("-")[0], c.split("-")[2]]))
-            if 'Capacidad de los frascos para especias' in c:
-                rename_columns.loc[len(rename_columns), :] = [c, "Capacidad frascos para especias-Mercado Libre Productos (HB)"]
-                df.columns = df.columns.where(~df.columns.str.contains("Capacidad de los frascos para especias"), "Capacidad frascos para especias-Mercado Libre Productos (HB)")
+            if "Mercado Libre Productos" in c:
+                words = c.split("Mercado Libre Productos")
+                rename_columns.loc[len(rename_columns), :] = [c, "".join(words)]
+                df.columns = df.columns.where(~df.columns.str.contains(words[0]), "".join(words))
+            if "Paris Productos" in c:
+                words = c.split("-")
+                rename_columns.loc[len(rename_columns), :] = [c, "".join([words[0], words[-1]])]
+                df.columns = df.columns.where(~df.columns.str.contains(words[1]), "".join([words[0], words[-1]]))
 
     with engine.connect() as connection:
         try:

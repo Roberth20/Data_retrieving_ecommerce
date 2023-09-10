@@ -7,14 +7,19 @@ def get_products():
         result = connection.execute(stmt)
         Ps = pd.DataFrame(result.fetchall(), columns = result.keys())
         Ps.set_index(["IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"], inplace=True)
-
-        stmt = db.text("SELECT * FROM Productos_MercadoLibre")
-        result = connection.execute(stmt)
+        try:
+            stmt = db.text("SELECT * FROM Productos_MercadoLibre")
+            result = connection.execute(stmt)
+        except:
+            return "The table Productos_MercadoLibre doesn't exist."
         Pm = pd.DataFrame(result.fetchall(), columns = result.keys())
         Pm.set_index(["IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"], inplace=True)
-
-        stmt = db.text("SELECT * FROM Productos_Paris")
-        result = connection.execute(stmt)
+        
+        try:
+            stmt = db.text("SELECT * FROM Productos_Paris")
+            result = connection.execute(stmt)
+        except:
+            return "The table Productos_Paris doesn't exist"
         Pp = pd.DataFrame(result.fetchall(), columns = result.keys())
         Pp.set_index(["IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"], inplace=True)
 
