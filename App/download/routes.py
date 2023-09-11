@@ -10,6 +10,7 @@ from App.models.clients import clients
 from App.models.checkouts import checkouts, deliverys
 from flask_security import auth_required
 from App.models.atributos_market import * 
+from App.download.help_func import *
 from App.download.help_func import col_color, missing_info
 import io
 
@@ -265,12 +266,9 @@ def download_deliverys():
 def download_customs_attribute():
     # Retrieving data
     current_app.logger.info("Retrieving data of custom_attributes from DB")
-    from App.models.ids import customs_ids
-    
-    customs_data = pd.DataFrame([[c.id_set, c.name_set, c.id, c.name, c.option_id,
-                                 c.option_name] for c in customs_ids.query.all()],
-                               columns = ["id_set", "name_set", "id", "name", "option_id",
-                                         "option_name"])
+    engine = db.engine
+    with engine.connect() as connection:
+        customs_data = pd.read_sql_table("customs_ids", connection)
     # Sending data
     current_app.logger.info("Sending data custom_attributes")
     buffer = io.BytesIO()
@@ -283,3 +281,81 @@ def download_customs_attribute():
     return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)
 
 ###########################################################################################################################
+@download.get("/customs_attributes2")
+@auth_required("basic")
+def download_customs_attribute2():
+    # Retrieving data
+    current_app.logger.info("Retrieving data of custom_attributes from DB")
+    
+    engine = db.engine
+    with engine.connect() as connection:
+        customs_data = pd.read_sql_table("customs_ids", connection)
+    atts = {"MLC": pd.DataFrame([[m.Label, m.AttributeType, m.Category] for m in Atributos_MercadoLibre.query.all()],
+                               columns = ["Label", "Value", "Category"]),
+           "FL": pd.DataFrame([[m.Label, m.Options, m.Category] for m in Atributos_Falabella.query.all()],
+                             columns = ["Label", "Values", "Category"]),
+           "RP": pd.DataFrame([[m.Label, m.Category] for m in Atributos_Ripley.query.all()],
+                             columns = ["Label", "Category"]),
+           "PR": pd.DataFrame([[m.Label, m.Family] for m in Atributos_Paris.query.all()],
+                             columns = ["Label", "Category"])}
+    maps = pd.DataFrame([[m.Multivende, m.MercadoLibre, m.Falabella, m.Ripley, m.Paris, m.Paris_Familia] 
+                        for m in Mapeo_categorias.query.all()], 
+                        columns = ["Multivende", "MercadoLibre", "Falabella", "Ripley", "Paris", "Paris Familia"])
+    map_att =  {"PR": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Paris.query.all()], 
+                      columns=["Mapeo", "Atributo"]), 
+                "RP": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Ripley.query.all()], 
+                      columns=["Mapeo", "Atributo"]),
+                "MLC": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_MercadoLibre.query.all()], 
+                      columns=["Mapeo", "Atributo"]), 
+                "FL": pd.DataFrame([[m.Mapeo, m.Atributo] for m in Mapeo_Falabella.query.all()], 
+                      columns=["Mapeo", "Atributo"])}
+    l = []
+    for market in maps.columns[1:5]:
+        for cat in maps[market]:
+            if market == "MercadoLibre":
+                name = cat.split(" - ")[-1]
+                info = "MLC", name
+            elif market == "Falabella":
+                words = cat.split(" > ")
+                words[-1] = words[-1].replace(u"\xa0", "")
+                info = "FL", words[-1]
+            elif market == 'Ripley':    
+                words = cat.split(" > ")
+                words[-1] = words[-1].replace(u"\xa0", "")
+                info = "RP", words[-1]
+            else:
+                cat2 = maps[cat == maps['Paris']].iloc[:, -1].values
+                if len(cat2) >= 1:
+                    cat2 = cat2[0]
+                # Make adjustments
+                name = cat2.replace(u"\xa0", "")
+                info = "PR", name
+
+            lm = get_attributes(info, atts)
+            atm = get_att_map(lm, map_att)
+            if market == "MercadoLibre":
+                cd = customs_data[(customs_data['name'].isin(atm[1])) & (customs_data['name_set'].str.contains("HB"))]
+            elif market == "Falabella":
+                cd = customs_data[(customs_data['name'].isin(atm[1])) & (customs_data['name_set'].str.contains("Falabella"))]
+            elif market == "Ripley":
+                cd = customs_data[(customs_data['name'].isin(atm[1])) & (customs_data['name_set'].str.contains("Ripley"))]
+            else:
+                cd = customs_data[(customs_data['name'].isin(atm[1])) & (customs_data['name_set'].str.contains("Paris"))]
+
+            if cd[cd['option_id'].notna()].shape[0] > 0:
+                tmp = cd[['name', 'option_name', 'name_set']][cd['option_id'].notna()].copy()
+                tmp["category"] = cat
+                l.append(tmp.reset_index(drop=True))
+            
+    data = pd.concat(l).reset_index(drop=True).drop_duplicates()
+    
+    # Sending data
+    current_app.logger.info("Sending data custom_attributes")
+    buffer = io.BytesIO()
+    data.to_excel(buffer, index = False)
+    
+    headers = {
+        'Content-Disposition': 'attachment; filename=Atributos customs.xlsx',
+        'Content-type': 'application/vnd.ms-excel'
+    }
+    return Response(buffer.getvalue(), mimetype='application/vnd.ms-excel', headers=headers)

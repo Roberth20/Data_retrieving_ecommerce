@@ -512,35 +512,18 @@ def upload_ids(token, merchant_id, model):
         data = get_customs_attributes(token, merchant_id)
         
         current_app.logger.info("Uploading to DB")
-        for i, row in data.iterrows():
-            result = db.session.scalar(db.select(customs_ids).where(customs_ids.id == row["id"]))
-            if result == None:
-                c_ids = customs_ids(id_set = row["id_set"], name_set = row["name_set"], id = row["id"],
-                                   name = row["name"], option_name = row["option_name"], option_id = row["option_id"])
-                db.session.add(c_ids)
-            else:
-                if row["option_id"]:
-                    stmt = (
-                        db.update(customs_ids)
-                        .where(customs_ids.option_id == row["option_id"])
-                        .values(id_set = row["id_set"], name_set = row["name_set"], id = row["id"],
-                                name = row["name"], option_name = row["option_name"], option_id = row["option_id"])
-                    )
-                    db.session.execute(stmt)
-                else:
-                    stmt = (
-                        db.update(customs_ids)
-                        .where(customs_ids.id == row["id"])
-                        .values(id_set = row["id_set"], name_set = row["name_set"], id = row["id"],
-                                name = row["name"], option_name = row["option_name"], option_id = row["option_id"])
-                    )
-                    db.session.execute(stmt)
-        db.session.commit()
-        
-        current_app.logger.info("Successful upload customs_ids to DB.")
+        engine = db.engine
+        with engine.connect() as connection:
+            try:
+                data.to_sql("customs_ids", engine, if_exists = "replace", index=True)
+                current_app.logger.debug(f"<li>Tabla 'customs_ids' populada con exito.</li>")
+            except Exception as e:
+                current_app.logger.debug(f"<li>La tabla 'customs_ids' tuvo un error {e}</li>")
+
+            current_app.logger.info("Successful upload customs_ids to DB.")
     else:
         current_app.logger.error(f"Error: model {model} no es valido.")
-        
+
 @celery.task
 def prepare_excel():
     current_app.logger.info("Retrieving data of products from DB")

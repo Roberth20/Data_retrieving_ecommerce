@@ -204,11 +204,11 @@ def update_products_from_file():
         if file and allowed_file(file.filename):
             # Load data
             df = pd.read_excel(file)
+            df2 = df.set_index(["IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"])
             db_products = get_products()
-            mask = ~df.columns.isin(["IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"])
+            diff = df2[~df2.isin(db_products)].dropna(how="all")
             # Check if data is valid
-            if ~df.columns[mask].isin(db_products.columns).all():
-                print(df.shape, db_products.shape)
+            if diff.shape[0] == 0:
                 return render_template("update/error.html")
 
             # Replace with new data
