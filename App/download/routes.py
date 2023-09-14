@@ -344,7 +344,7 @@ def download_customs_attribute2():
 
             if cd[cd['option_id'].notna()].shape[0] > 0:
                 tmp = cd[['name', 'option_name', 'name_set']][cd['option_id'].notna()].copy()
-                tmp["category"] = cat
+                tmp["category"] = maps[maps[market] == cat]['Multivende'].values[0]
                 l.append(tmp.reset_index(drop=True))
             
     data = pd.concat(l).reset_index(drop=True).drop_duplicates()
