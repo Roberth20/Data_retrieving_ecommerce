@@ -185,9 +185,14 @@ def update_products():
     token = decrypt(last_auth.token, current_app.config["SECRET_KEY"])
     
     current_app.logger.debug("Sending to worker task: update_products")
-    celery.send_task("App.task.long_task.update_products", [token, current_app.config["MERCHANT_ID"]])
+    result = celery.send_task("App.task.long_task.update_products", [token, current_app.config["MERCHANT_ID"]])
         
-    return render_template("update/products_updated.html")
+    return render_template("update/products_updated.html", message= result.id)
+
+@update.get("/check_id/<id>")
+def check_id(id):
+    result = celery.AsyncResult(id)
+    return render_template("update/status_products.html", message=result)
 
 @update.route("products_file", methods=["GET", "POST"])
 @auth_required("basic")

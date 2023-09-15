@@ -342,7 +342,8 @@ def update_products(token, merchant_id):
         message = upload_data_products(df, db)
     
     
-    celery.send_task("App.task.long_task.prepare_excel")
+    result = celery.send_task("App.task.long_task.prepare_excel")
+    return result.id
     
     
 @celery.task
