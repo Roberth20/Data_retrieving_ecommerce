@@ -21,7 +21,6 @@ from App.download.help_func import col_color, missing_info
 @celery.task
 def celery_long_task(duration):
     for i in range(duration):
-        print(i)
         time.sleep(5)
           
 @celery.task
@@ -41,7 +40,6 @@ def update_deliverys(token, merchant_id, last, now):
     data=[]
     s = len(response["entries"])
     for i, conn in enumerate(response["entries"]):
-        print(f"Working on update deliverys... connection {i}/{s}")
         url = f"https://app.multivende.com/api/m/{merchant_id}/delivery-orders/documents/p/1?_delivery_statuses=completed&_delivery_statuses=pending&_shipping_label_print_statuses=not_printed&_shipping_label_status=ready&include_only_delivery_order_with_traking_number=true&_marketplace_connection_id={conn['_id']}&_updated_at_from={last}&_updated_at_to={now}"
         # Get shipping labels for connections
         try:
@@ -53,13 +51,11 @@ def update_deliverys(token, merchant_id, last, now):
         if len(info["entries"]) > 0:
             pages = info["pagination"]["total_pages"]
             for p in range(0, pages):
-                print(f"Working on update deliverys... page {p+1}/{pages}")
                 url = f"https://app.multivende.com/api/m/{merchant_id}/delivery-orders/documents/p/{p+1}?_delivery_statuses=completed&_delivery_statuses=pending&_shipping_label_print_statuses=not_printed&_shipping_label_status=ready&include_only_delivery_order_with_traking_number=true&_marketplace_connection_id={conn['_id']}&_updated_at_from={last}&_updated_at_to={now}"
                 entries = requests.get(url, headers=headers).json()
                 # Store important data
                 l = len(entries["entries"])
                 for i, entry in enumerate(entries["entries"]):
-                    print(f"Working on update deliverys... {i}/{l}")
                     tmp = {}
                     tmp["fecha promesa"] = entry["promisedDeliveryDate"]
                     tmp["direccion"] = entry["deliveryAddress"]
@@ -120,7 +116,6 @@ def update_checkouts(token, merchant_id, last, now):
     ids= []
     # First all ids
     for p in range(0, pages):
-        print(f"Working to get ids... {p+1}/{pages}")
         url = f"https://app.multivende.com/api/m/{merchant_id}/checkouts/light/p/{p+1}?_updated_at_from={last}&_updated_at_to={now}"
         data = requests.get(url, headers=headers).json()
         for d in data["entries"]:
@@ -130,7 +125,6 @@ def update_checkouts(token, merchant_id, last, now):
     ventas = []
     total_ids = len(ids)
     for i, id in enumerate(ids):
-        print(f"Working to get data... {i}/{total_ids}")
         tmp = {}
         url = f"https://app.multivende.com/api/checkouts/{id}"
         checkout = requests.get(url, headers=headers)
