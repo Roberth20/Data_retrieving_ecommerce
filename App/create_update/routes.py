@@ -83,12 +83,16 @@ def send_form():
             customs_att[m] = custom_p, custom_v
         
         # Preparing all info to be inserted in the upload template
-        tags = []
+        tags = None
         if pd.notna(p["tags"]):
-            tags.append({
-                  "text": p["tags"],
-                  "_id": id_data["id"][id_data["name"] == p["tags"]].values[0]
-              })
+            tags = []
+            try:
+                tags.append({
+                      "text": p["tags"],
+                      "_id": id_data["id"][(id_data["name"] == p["tags"]) & (id_data["type"] == "tag")].values[0]
+                  })
+            except:
+                current_app.logger.debug(f"Tag: {p['tags']} not found.")
         productCategory = None
         if pd.notna(p["ProductCategory"]):
             productCategory = id_data["id"][id_data["name"] == p["ProductCategory"]].values[0]
@@ -101,7 +105,7 @@ def send_form():
         brand = None
         if pd.notna(p["Brand"]):
             try:
-                brand =  id_data["id"][id_data["name"] == p["Brand"]].values[0]
+                brand =  id_data["id"][(id_data["name"] == p["Brand"]) & (id_data["type"] == "brand")].values[0]
             except:
                 current_app.logger.debug(f"ID of brand: {p['Brand']} not in database")
                 return render_template("create_update/error.html", message = f"Cancelando envio por: ID of brand: {p['Brand']} not in database")
@@ -168,8 +172,8 @@ def send_form():
         })
         
         # Add customs attributes values separated by marketplace with valid format
-        t = "CustomAttributeValues: {"
-        v = "CustomAttributeValues: {"
+        t = '"CustomAttributeValues": {'
+        v = '"CustomAttributeValues": {'
         for x in [customs_att[k][0] for k in customs_att.keys() if customs_att[k][0] != {}]:
             for kx in x.keys():
                 t += f"{json.dumps(kx)}: {json.dumps(x[kx])}, "
@@ -179,9 +183,15 @@ def send_form():
                 continue
             for ky in y.keys():
                 v += f"{json.dumps(ky)}: {json.dumps(y[ky])}, "
-
-        t = t[:-2] + "}, "
-        v = v[:-2] + "}, "
+                
+        if len(t) > 26:
+            t = t[:-2] + "}, "
+        else:
+            t += "},"
+        if len(v) > 26:
+            v = v[:-2] + "}, "
+        else:
+            v += "}, "
         payload = payload.replace('"custom_p": 0,', t)
         payload = payload.replace('"custom_v": 0,', v)
         

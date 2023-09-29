@@ -44,6 +44,8 @@ def get_serialized_data(p, customs_data, std, market):
     custom_p = {}
     custom_v = {}
     for i in p_customs.index:
+        if p[i] == "9069b962-5f30-4577-a89a-1f051d8ed057":
+            continue
         words = i.split("-")
         if len(words) > 2:
             w = "-".join([words[0], words[1]])
