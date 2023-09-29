@@ -53,10 +53,10 @@ def send_form():
     products = get_products()
     id_data = pd.DataFrame([[i.id, i.name, i.type] for i in ids.query.all()],
                           columns = ["id", "name", "type"])
-    customs_data = pd.DataFrame([[c.id_set, c.name_set, c.id, c.name, c.option_id,
-                                 c.option_name] for c in customs_ids.query.all()],
-                               columns = ["id_set", "name_set", "id", "name", "option_id",
-                                         "option_name"])
+    engine = db.engine
+    with engine.connect() as connection:
+        customs_data = pd.read_sql_table("customs_ids", connection)
+        
     std = products.columns[:21]
     
     current_app.logger.debug("Preparing data to send json of products")
@@ -168,16 +168,20 @@ def send_form():
         })
         
         # Add customs attributes values separated by marketplace with valid format
-        t = ""
-        v = ""
+        t = "CustomAttributeValues: {"
+        v = "CustomAttributeValues: {"
         for x in [customs_att[k][0] for k in customs_att.keys() if customs_att[k][0] != {}]:
-            t += '"CustomAttributeValues":'+json.dumps(x)+", "
+            for kx in x.keys():
+                t += f"{json.dumps(kx)}: {json.dumps(x[kx])}, "
 
         for y in [customs_att[k][1] if customs_att[k][1] != {} else 0 for k in customs_att.keys()]:
             if y == 0:
                 continue
-            v += '"CustomAttributeValues":'+json.dumps(y)+", "
+            for ky in y.keys():
+                v += f"{json.dumps(ky)}: {json.dumps(y[ky])}, "
 
+        t = t[:-2] + "}, "
+        v = v[:-2] + "}, "
         payload = payload.replace('"custom_p": 0,', t)
         payload = payload.replace('"custom_v": 0,', v)
         

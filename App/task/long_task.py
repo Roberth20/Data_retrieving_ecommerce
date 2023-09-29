@@ -510,7 +510,7 @@ def upload_ids(token, merchant_id, model):
         engine = db.engine
         with engine.connect() as connection:
             try:
-                data.to_sql("customs_ids", engine, if_exists = "replace", index=True)
+                data.to_sql("customs_ids", engine, if_exists = "replace", index=False)
                 current_app.logger.debug(f"<li>Tabla 'customs_ids' populada con exito.</li>")
             except Exception as e:
                 current_app.logger.debug(f"<li>La tabla 'customs_ids' tuvo un error {e}</li>")

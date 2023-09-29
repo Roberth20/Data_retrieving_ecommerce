@@ -80,7 +80,8 @@ def category_tree_falabella(categories: list, tree: list):
         if type(item["Children"]) != dict:
             continue
         if type(item["Children"]["Category"]) == dict:
-            tree.append({"Name": item["Children"]["Category"]["Name"], "Id": item["Children"]["Category"]["CategoryId"]})
+            tree.append({"Name": item["Children"]["Category"]["Name"], "Id": item["Children"]["Category"]["CategoryId"],
+                        "GlobalId": item["Children"]['GlobalIdentifier']})
             continue
         # Llamamos la funcion nuevamente
         category_tree_falabella(item["Children"]["Category"], tree)
