@@ -176,13 +176,16 @@ def send_form():
         v = '"CustomAttributeValues": {'
         for x in [customs_att[k][0] for k in customs_att.keys() if customs_att[k][0] != {}]:
             for kx in x.keys():
-                t += f"{json.dumps(kx)}: {json.dumps(x[kx])}, "
-
+                t += f'{json.dumps(kx)}: {json.dumps(x[kx])}, '
+        
         for y in [customs_att[k][1] if customs_att[k][1] != {} else 0 for k in customs_att.keys()]:
             if y == 0:
                 continue
             for ky in y.keys():
-                v += f"{json.dumps(ky)}: {json.dumps(y[ky])}, "
+                if ky == "932bc231-7add-4a76-9d4a-5ea36f33cccd" or ky == "6d4452c8-0cd6-4ef4-9c86-f86ab705e607":
+                    v += f"{json.dumps(ky)}: {json.dumps(str(int(y[ky])))}, "
+                else:
+                    v += f"{json.dumps(ky)}: {json.dumps(y[ky])}, "
                 
         if len(t) > 26:
             t = t[:-2] + "}, "
