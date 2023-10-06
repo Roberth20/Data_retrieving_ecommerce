@@ -29,22 +29,21 @@ def check_differences_and_upload_maps(df, db_market, db, market):
       * None.
     """
     # Check differences
-    diff = df[~df.isin(db_market)].dropna(how="all")
-    for i, row in diff.iterrows():
+    for i, row in df.iterrows():
         # If the difference is a change in a column, update it
-        if row.isna().any():
-            ID = db_market[db_market.index == i].iloc[0, 0]
-            mapeo = db.session.get(market, ID)
-            if row[row.notna()].index[0] == "Mapeo":
-                mapeo.Mapeo = row[row.notna()][0]
-            else:
-                mapeo.Atributo = row[row.notna()][0]
-            db.session.commit()
-        # Add the new row to the map
+        if any(db_market['Mapeo'] == row['Mapeo']):
+            ID = db_market['ID'][db_market['Mapeo'] == row['Mapeo']].values[0]
+            stmt = (
+                db.update(market)
+                .where(market.id == ID)
+                .values(Mapeo = row['Mapeo'], Atributo= row['Atributo'])
+            )
+            db.session.execute(stmt)
+            # Add the new row to the map
         else:
             mapeo = market(Mapeo=row.Mapeo, Atributo=row.Atributo)
             db.session.add(mapeo)
-            db.session.commit()
+    db.session.commit()
 
 def check_differences_and_upload_cats(df, db_cat, db, model):
     """Funcion para actualizacion de los mapeos de categorias.
@@ -414,6 +413,16 @@ def get_data_tags(token, merchant_id):
         response = response.json()
     except:
         return f"Error: {response.text}"
+    if response['pagination']['total_pages'] > 1:
+        data = []
+        for i in range(response['pagination']['total_pages']):
+            url = f"https://app.multivende.com/api/m/{merchant_id}/tags/p/{i+1}"
+            response2 = requests.request("GET", url, headers=headers).json()
+            data += response2['entries']
+    else:
+        data = response['entries']
+        
+    tags = pd.DataFrame(data)
         
     tags = pd.DataFrame(response["entries"])
     tags["type"] = "tag"

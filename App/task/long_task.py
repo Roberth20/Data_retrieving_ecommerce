@@ -17,6 +17,8 @@ from App.models.mapeo_atributos import *
 from App.models.atributos_market import * 
 from App.models.mapeo_categorias import Mapeo_categorias
 from App.download.help_func import col_color, missing_info
+from nltk.corpus import stopwords
+import textdistance
 
 @celery.task
 def celery_long_task(duration):
@@ -516,6 +518,7 @@ def upload_ids(token, merchant_id, model):
                 current_app.logger.debug(f"<li>La tabla 'customs_ids' tuvo un error {e}</li>")
 
             current_app.logger.info("Successful upload customs_ids to DB.")
+            celery.send_task("App.task.long_task.update_maps_attributes")
     else:
         current_app.logger.error(f"Error: model {model} no es valido.")
 
@@ -591,3 +594,74 @@ def update_clients(fu, fak, pak, rak):
         else:
             c = customer
     db.session.commit()
+    
+def limpieza_de_atributos(atributos):
+    att = []
+    for cat in atributos:
+        if "-" in cat:
+            att.append(cat.split(" - ")[0])
+        else:
+            att.append(cat)
+    return att    
+    
+@celery.task
+def update_maps_attributes():
+    current_app.logger.info('Loading info')
+    df = get_products()
+    atts = {"MLC": pd.DataFrame([[m.Label, m.AttributeType, m.Category] for m in Atributos_MercadoLibre.query.all()],
+                               columns = ["Label", "Value", "Category"]),
+            "FL": pd.DataFrame([[m.Label, m.Options, m.Category] for m in Atributos_Falabella.query.all()],
+                             columns = ["Label", "Values", "Category"]),
+            "RP": pd.DataFrame([[m.Label, m.Category] for m in Atributos_Ripley.query.all()],
+                             columns = ["Label", "Category"]),
+            "PR": pd.DataFrame([[m.Label, m.Family] for m in Atributos_Paris.query.all()],
+                             columns = ["Label", "Category"])}
+    
+    std_col = np.array(df.columns[:21])
+    ml_col = [c[:-29] for c in df.columns if "Mercado Libre" in c]
+    fb_col = [c[:-20] for c in df.columns if "Falabella" in c]
+    rp_col = [c[:-17] for c in df.columns if "Ripley" in c]
+    pr_col = [c[:-16] for c in df.columns if "Paris" in c]
+    multivende_cols = {"MLC": ml_col, "FL": fb_col, "RP": rp_col, "PR": pr_col}
+    std_transformation = pd.DataFrame({
+        "Original": std_col,
+        "Nuevo": ["Temporada", "Modelo", "Descripción", "Descripción html", "Descripción corta", 
+                  "Descripción corta html", "Garantía", "Marca", "Nombre", "Categoría de producto",
+                 "Nombre Sku", "Color", "Tamaño", "SKU", "SKU interno", "Ancho", "Largo",
+                 "Alto", "Peso", "tags", "imagen"]
+    })
+    std_transformation.loc[len(std_transformation), :] = ["size", "Talla"]
+    sw = stopwords.words(fileids = "spanish")
+    
+    for col in multivende_cols:
+        multivende_cols[col] = limpieza_de_atributos(multivende_cols[col]) + std_transformation.Nuevo.tolist()
+        
+    current_app.logger.info("Processing attributes")
+    mapeos = {}
+    for k in multivende_cols.keys():
+        tmp = pd.DataFrame(columns=['Mapeo', 'Atributo'])
+        col = multivende_cols[k]
+        for ma in col:
+            m = {"similarity": 0, "multi": ma, "market": ""}
+            for mm in atts[k].Label.unique():
+                d = textdistance.jaccard.similarity(ma.lower().split(), mm.lower().split())
+                if d >= m['similarity']:
+                    m['similarity'] =  d
+                    m['market'] = mm
+            tmp.loc[len(tmp), :] = [m['multi'], m['market']]
+        mapeos[k] = tmp
+        
+    map_att =  {"PR": pd.DataFrame([[m.id, m.Mapeo, m.Atributo] for m in Mapeo_Paris.query.all()], 
+                      columns=["ID", "Mapeo", "Atributo"]), 
+                "RP": pd.DataFrame([[m.id, m.Mapeo, m.Atributo] for m in Mapeo_Ripley.query.all()], 
+                      columns=["ID", "Mapeo", "Atributo"]),
+                "MLC": pd.DataFrame([[m.id, m.Mapeo, m.Atributo] for m in Mapeo_MercadoLibre.query.all()], 
+                      columns=["ID", "Mapeo", "Atributo"]), 
+                "FL": pd.DataFrame([[m.id, m.Mapeo, m.Atributo] for m in Mapeo_Falabella.query.all()], 
+                      columns=["ID", "Mapeo", "Atributo"])}
+    
+    current_app.logger.info('Uploading to DB')
+    check_differences_and_upload_maps(mapeos["MLC"], map_att['MLC'], db, Mapeo_MercadoLibre)
+    check_differences_and_upload_maps(mapeos["PR"], map_att['PR'], db, Mapeo_Paris)
+    check_differences_and_upload_maps(mapeos["FL"], map_att['FL'], db, Mapeo_Falabella)
+    check_differences_and_upload_maps(mapeos["RP"], map_att['RP'], db, Mapeo_Ripley)
