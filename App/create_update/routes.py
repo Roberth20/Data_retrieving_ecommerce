@@ -86,13 +86,18 @@ def send_form():
         tags = None
         if pd.notna(p["tags"]):
             tags = []
-            try:
-                tags.append({
-                      "text": p["tags"],
-                      "_id": id_data["id"][(id_data["name"] == p["tags"]) & (id_data["type"] == "tag")].values[0]
-                  })
-            except:
-                current_app.logger.debug(f"Tag: {p['tags']} not found.")
+            for tag in p['tags'].split(";"):
+                if tag[0] == " ":
+                    tag = tag[1:]
+                if tag[-1] == " ":
+                    tag = tag[:-1]
+                try:
+                    tags.append({
+                          "text": tag,
+                          "_id": id_data["id"][(id_data["name"] == tag) & (id_data["type"] == "tag")].values[0]
+                      })
+                except:
+                    current_app.logger.debug(f"Tag: {tag} not found. {p['tags']}")
         productCategory = None
         if pd.notna(p["ProductCategory"]):
             productCategory = id_data["id"][id_data["name"] == p["ProductCategory"]].values[0]

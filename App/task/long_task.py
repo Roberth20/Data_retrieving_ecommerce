@@ -501,6 +501,13 @@ def upload_ids(token, merchant_id, model):
             if result == None:
                 new_ids = ids(name = row["name"], id = row["_id"], type=row["type"])
                 db.session.add(new_ids)
+            else:
+                stmt = (
+                    db.update(ids)
+                    .where(ids.id == row["_id"])
+                    .values(name = row["name"], type=row["type"], id = row["_id"])
+                )
+                db.session.execute(stmt)
         db.session.commit()
         
         current_app.logger.info("Successful upload customs_ids to DB.")
