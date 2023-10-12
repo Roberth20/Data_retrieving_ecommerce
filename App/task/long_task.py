@@ -274,10 +274,12 @@ def update_products(token, merchant_id):
             war = None
         i["Warranty"] = war
         try:
-            tag = i["ProductTags"][0]["Tag"]["name"]
+            tags = []
+            for t in i["ProductTags"]:
+                tags.append(t["Tag"]["name"])
         except:
-            tag = None
-        i["tags"] = tag
+            tags = None
+        i["tags"] = tags
         try:
             picture = i["ProductPictures"][0]["url"]
         except:
