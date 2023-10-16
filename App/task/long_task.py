@@ -322,6 +322,7 @@ def update_products(token, merchant_id):
     
     # Limpiamos columnas duplicadas
     df.drop(columns = df.columns[df.columns.duplicated()], inplace =True)
+    df.tags = df.tags.astype("str")
     data = get_products()
     if type(data) != str:
         df2 = df.set_index(["IDENTIFICADOR_PADRE", "IDENTIFICADOR_HIJO"])
