@@ -1,5 +1,5 @@
 from App.extensions.db import db
-from flask_security.models import fsqla_v3 as fsqla
+from flask_security.models import fsqla
 
 fsqla.FsModels.set_db_info(db)
 

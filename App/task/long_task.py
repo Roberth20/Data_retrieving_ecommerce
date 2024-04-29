@@ -119,7 +119,11 @@ def update_checkouts(token, merchant_id, last, now):
     # First all ids
     for p in range(0, pages):
         url = f"https://app.multivende.com/api/m/{merchant_id}/checkouts/light/p/{p+1}?_updated_at_from={last}&_updated_at_to={now}"
-        data = requests.get(url, headers=headers).json()
+        data = requests.get(url, headers=headers)
+        try:
+            data = data.json()
+        except:
+            return "Error" + data.text
         for d in data["entries"]:
             ids.append(d["_id"])
     
@@ -132,6 +136,7 @@ def update_checkouts(token, merchant_id, last, now):
         checkout = requests.get(url, headers=headers)
         try:
             checkout = checkout.json()
+            checkout['soldAt']
         except:
             current_app.logger.error(f"Error: {checkout.text}")
         
