@@ -6,7 +6,7 @@ import sys
 import json
 import requests
 from models import auth_app, Product, Attributes
-from datetime import datetime
+from datetime import datetime, timezone
 from utils import *
 from time import sleep
 
@@ -38,7 +38,7 @@ if last_auth == None:
     logger.error("Failed authentication")
     sys.exit(0)
         
-diff = datetime.utcnow() - last_auth.expire
+diff = datetime.now(timezone.utc) - last_auth.expire.replace(tzinfo=timezone.utc)
 # The token expired
 if diff.total_seconds()/3600 > 6:
     logger.warning('Refresh token expired.')
@@ -147,11 +147,12 @@ for i in info:
     except:
         tags = None
     i["tags"] = tags
+    picture = None
     if len(i['ProductPictures']) == 0:
         picture = None
     try:
         for p in i["ProductPictures"]:
-            if p['originalFileName'].split('-')[-1] == '1.jpg':
+            if p['originalFileName'][-5:] == '1.jpg' or p['originalFileName'][-5:] == '1.png':
                 picture = p['url']
                 break
     except:

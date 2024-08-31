@@ -1,6 +1,6 @@
 cryptography==42.0.5
 pymysql==1.0.2
-numpy==1.24.3
+numpy~=1.26
 sqlalchemy==2.0.25
 pandas==2.1.4
 requests==2.31.0
