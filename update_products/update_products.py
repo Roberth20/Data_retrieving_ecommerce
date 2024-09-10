@@ -229,8 +229,11 @@ for i, row in df.iterrows():
     for list in price_lists['entries']:
         url = f'https://app.multivende.com/api/product-price/product-price-lists/{list["_id"]}/limit/1000?_code={row["IDENTIFICADOR_HIJO"]}'
         product_prices = requests.request("GET", url, headers=headers).json()
-        prices.loc[i, ''.join(list['name'].split(' '))] = product_prices['entries'][0]['ProductPrices']['gross']
-        prices.loc[i, ''.join(list['name'].split(' ')) + 'WithDiscount'] = product_prices['entries'][0]['ProductPrices']['priceWithDiscount']
+        try:
+            prices.loc[i, ''.join(list['name'].split(' '))] = product_prices['entries'][0]['ProductPrices']['gross']
+            prices.loc[i, ''.join(list['name'].split(' ')) + 'WithDiscount'] = product_prices['entries'][0]['ProductPrices']['priceWithDiscount']
+        except:
+            print(product_prices)
     
     # Waiting time to avoid over-crowding connection    
     sleep(0.01)
