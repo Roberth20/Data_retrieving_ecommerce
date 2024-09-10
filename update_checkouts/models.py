@@ -105,6 +105,13 @@ class Product(Base):
     weight: Mapped[float] = mapped_column(Float, nullable=True)
     tags: Mapped[str] = mapped_column(String(255), nullable=True)
     picture: Mapped[str] = mapped_column(String(180), nullable=True)
+    CBarra01: Mapped[str] = mapped_column(String(24), nullable=True)
+    CBarra02: Mapped[str] = mapped_column(String(24), nullable=True)
+    CBarra03: Mapped[str] = mapped_column(String(24), nullable=True)
+    CBarra04: Mapped[str] = mapped_column(String(24), nullable=True)
+    CBarra05: Mapped[str] = mapped_column(String(24), nullable=True)
+    CBarra06: Mapped[str] = mapped_column(String(24), nullable=True)
+
 
     attributes = relationship('Attributes', secondary = 'association_table')
 

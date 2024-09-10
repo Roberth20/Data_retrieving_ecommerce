@@ -331,7 +331,14 @@ def upload_data_products(df, Product, Attributes, engine):
                                           PreciosRipleyWithDiscount = row['PreciosRipleyWithDiscount'],
                                           PreciosParisWithDiscount = row['PreciosParisWithDiscount'],
                                           PreciosFalabellaWithDiscount = row['PreciosFalabellaWithDiscount'],
-                                          PreciosShopifyWithDiscount = row['PreciosShopifyWithDiscount'])
+                                          PreciosShopifyWithDiscount = row['PreciosShopifyWithDiscount'],
+                                          CBarra01 = row['Codigo_de_barra_01-Shopify Productos'],
+                                          CBarra02 = row['Codigo_de_barra_02-Shopify Productos'],
+                                          CBarra03 = row['Codigo_de_barra_03-Shopify Productos'],
+                                          CBarra04 = row['Codigo_de_barra_04-Shopify Productos'],
+                                          CBarra05 = row['Codigo_de_barra_05-Shopify Productos'],
+                                          CBarra06 = row['Codigo_de_barra_06-Shopify Productos'],
+                                          Costo01 = row['Costo_01-Shopify Productos'])
                     for attribute in attributes:
                         # Associate the attributes objects to the new product
                         new_product.attributes.append(attribute)
@@ -380,7 +387,14 @@ def upload_data_products(df, Product, Attributes, engine):
                                          PreciosRipleyWithDiscount = row['PreciosRipleyWithDiscount'],
                                          PreciosParisWithDiscount = row['PreciosParisWithDiscount'],
                                          PreciosFalabellaWithDiscount = row['PreciosFalabellaWithDiscount'],
-                                         PreciosShopifyWithDiscount = row['PreciosShopifyWithDiscount']))
+                                         PreciosShopifyWithDiscount = row['PreciosShopifyWithDiscount'],
+                                         CBarra01 = row['Codigo_de_barra_01-Shopify Productos'],
+                                         CBarra02 = row['Codigo_de_barra_02-Shopify Productos'],
+                                         CBarra03 = row['Codigo_de_barra_03-Shopify Productos'],
+                                         CBarra04 = row['Codigo_de_barra_04-Shopify Productos'],
+                                         CBarra05 = row['Codigo_de_barra_05-Shopify Productos'],
+                                         CBarra06 = row['Codigo_de_barra_06-Shopify Productos'],
+                                         Costo01 = row['Costo_01-Shopify Productos']))
                     session.execute(stmt)
 
             session.commit()
