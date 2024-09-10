@@ -5,7 +5,7 @@ import os
 import sys
 import json
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from models import auth_app, deliverys, checkouts
 import pandas as pd
 import numpy as np
@@ -34,14 +34,14 @@ engine = create_engine(config.SQLALCHEMY_DATABASE_URI,
 logger.info('Retrieving data from db.')
 with Session(engine) as session:
     last_auth = session.scalar(select(auth_app).order_by(auth_app.expire.desc()))
-    last_date = datetime.utcnow() - timedelta(days=14)
+    last_date = datetime.now(timezone.utc) - timedelta(days=14)
     result = session.scalars(select(checkouts.id_venta).where(checkouts.fecha >= last_date)).all()
 
 if last_auth == None:
     logger.error("Failed authentication")
     sys.exit(0)
         
-diff = datetime.utcnow() - last_auth.expire
+diff = datetime.now(timezone.utc) - last_auth.expire.replace(tzinfo=timezone.utc)
 # The token expired
 if diff.total_seconds()/3600 > 6:
     logger.warning('Refresh token expired.')
@@ -51,39 +51,68 @@ if diff.total_seconds()/3600 > 6:
 token = decrypt(last_auth.token, config.SECRET_KEY)
 
 # Get marketplace connections
-logger.info('Getting of deliveries from checkouts')
-data = []
+logger.info('Getting data from marketplaces')
+conn_id = []
 merchant_id = config.MERCHANT_ID
-for id in result:
-    url = f"https://app.multivende.com/api/checkouts/{id}"
+channels = ['mercadolibre', 'linio', 'dafiti', 'ripley', 'paris', 'fcom']
+for c in channels:
+    url = f"https://app.multivende.com/api/m/{merchant_id}/{c}-connections"
     headers = {
             'Authorization': f'Bearer {token}'
         }
     response = requests.request("GET", url, headers=headers)
     try:
         response = response.json()
-        response['DeliveryOrderInCheckouts']  # Check if the json data is correct
-    except Exception as e:
-        logger.error(f'Error {e}: {response.text}')
+    except:
+        logger.warning('Advertencia: ', response.text)
+    if len(response['entries']) > 0:
+        conn_id.append(response['entries'][0]['_id'])
 
-    if response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['trackingNumber'] is None:
+# Get deliveries data
+logger.info('Retrieving delivery data')
+raw = []
+for con_id in conn_id:
+    p = 1
+    url = f"https://app.multivende.com/api/m/{merchant_id}/delivery-orders/documents/p/{p}?_delivery_statuses=completed&_delivery_statuses=pending&_shipping_label_print_statuses=not_printed&_shipping_label_status=ready&include_only_delivery_order_with_traking_number=true&_marketplace_connection_id={con_id}&_updated_at_from={last_date.isoformat('T', 'seconds')[:-6]}&_updated_at_to={datetime.now(timezone.utc).isoformat('T', 'seconds')[:-6]}"
+    headers = {
+            'Authorization': f'Bearer {token}'
+        }
+    response = requests.request("GET", url, headers=headers).json()
+    # If there are not entries, go for next connection
+    if response['pagination']['total_items'] == 0:
         continue
+    # Save raw data
+    [raw.append(entry) for entry in response['entries']]
+    # If more than one page, iterate over the others
+    if response['pagination']['total_pages'] > 1:
+        for p in range(1, response['pagination']['total_pages']):
+            url = f"https://app.multivende.com/api/m/{merchant_id}/delivery-orders/documents/p/{p+1}?_delivery_statuses=completed&_delivery_statuses=pending&_shipping_label_print_statuses=not_printed&_shipping_label_status=ready&include_only_delivery_order_with_traking_number=true&_marketplace_connection_id={con_id}&_updated_at_from={last_date.isoformat('T', 'seconds')[:-6]}&_updated_at_to={datetime.now(timezone.utc).isoformat('T', 'seconds')[:-6]}"
+            headers = {
+                    'Authorization': f'Bearer {token}'
+                }
+            response2 =  requests.request("GET", url, headers=headers).json()
+            [raw.append(entry) for entry in response2['entries']]
 
+# Process data
+data = []
+for r in raw:
     tmp = {}
-    tmp['n venta'] = response["CheckoutLink"]["externalOrderNumber"] 
-    tmp['fecha promesa'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['promisedDeliveryDate']
-    tmp['direccion'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['deliveryAddress']
-    tmp['codigo'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['code']
-    tmp['courier'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['courierName']
-    tmp['fecha despacho'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['handlingDateLimit']
-    tmp['delivery status'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['deliveryStatus']
-    n_seguimiento = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['trackingNumber'] 
+    tmp['n venta'] = r['DeliveryOrderInCheckouts'][0]['Checkout']['CheckoutLinks'][0]['externalId']
+    tmp['fecha promesa'] = r['promisedDeliveryDate']
+    tmp['direccion'] = r['ShippingAddress']['address_1']
+    tmp['codigo'] = r['DeliveryOrderInCheckouts'][0]['Checkout']['code']
+    tmp['courier'] = r['courierName']
+    tmp['fecha despacho'] = r['handlingDateLimit']
+    tmp['delivery status'] = r['deliveryStatus']
+    n_seguimiento = r['trackingNumber'] 
     if len(n_seguimiento) == 21:
         tmp['N seguimiento'] = n_seguimiento[3:-7]
-    tmp['status etiqueta'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['shippingLabelStatus']
-    tmp['estado impresion etiqueta'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['shippingLabelPrintStatus']
-    tmp['id venta'] = response['_id']
-    tmp['codigo venta'] = response['code']
+    else:
+        tmp['N seguimiento'] = n_seguimiento
+    tmp['status etiqueta'] = r['shippingLabelStatus']
+    tmp['estado impresion etiqueta'] = r['shippingLabelPrintStatus']
+    tmp['id venta'] =  r['DeliveryOrderInCheckouts'][0]['Checkout']['_id']
+    tmp['codigo venta'] = r['DeliveryOrderInCheckouts'][0]['Checkout']['code']
     data.append(tmp)
 
 # Create dataframe and adjust formats
