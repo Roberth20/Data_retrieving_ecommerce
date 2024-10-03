@@ -5,8 +5,8 @@ import os
 import sys
 import json
 import requests
-from datetime import datetime, timedelta
-from models import auth_app, checkouts
+from datetime import datetime, timedelta, timezone
+from models import auth_app, checkouts, Product
 import pandas as pd
 import numpy as np
 from utils import *
@@ -35,15 +35,15 @@ logger.info('Retrieving data from db.')
 with Session(engine) as session:
     last_auth = session.scalar(select(auth_app).order_by(auth_app.expire.desc()))
     result = session.scalar(select(checkouts).order_by(checkouts.fecha.desc()))
-    now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
-    last_update = datetime.utcnow() - timedelta(days=30) # One day before to update changes of recents sells
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    last_update = datetime.now(timezone.utc) - timedelta(days=14) # One day before to update changes of recents sells
     last = last_update.strftime("%Y-%m-%dT%H:%M:%S")
 
 if last_auth == None:
     logger.error("Failed authentication")
     sys.exit(0)
         
-diff = datetime.utcnow() - last_auth.expire
+diff = datetime.now(timezone.utc) - last_auth.expire.replace(tzinfo=timezone.utc)
 # The token expired
 if diff.total_seconds()/3600 > 6:
     logger.warning('Refresh token expired.')
@@ -92,7 +92,7 @@ for id in ids:
         checkout = checkout.json()
         checkout['soldAt']
     except Exception as e:
-        logger.error(f"Error {e}: {checkout.text}")
+        logger.error(f"Error {e}: {checkout}")
         
     tmp["fecha"] = checkout["soldAt"]
     tmp["nombre"] = checkout["Client"]["fullName"]
@@ -124,6 +124,12 @@ for id in ids:
         item["nombre producto"] = product["ProductVersion"]["Product"]["name"]
         item["id padre producto"] = product["ProductVersion"]["ProductId"]
         item["id hijo producto"] = product["ProductVersionId"]
+        if not product["code"]:
+            # get code (SKU) from product table if missing
+            with Session(engine) as session:
+                result = session.scalar(select(Product.sku).where(Product.id_padre == item["id padre producto"]))
+            item["codigo producto"] = result
+            #print(f'Producto: {item["id padre producto"]} sin SKU, asignando {result}')
         item["cantidad"] = product["count"]
         item["precio"] = product["gross"]
         ventas.append(item)

@@ -51,68 +51,43 @@ if diff.total_seconds()/3600 > 6:
 token = decrypt(last_auth.token, config.SECRET_KEY)
 
 # Get marketplace connections
-logger.info('Getting data from marketplaces')
-conn_id = []
+logger.info('Getting data for delivery orders')
+data = []
+
 merchant_id = config.MERCHANT_ID
-channels = ['mercadolibre', 'linio', 'dafiti', 'ripley', 'paris', 'fcom']
-for c in channels:
-    url = f"https://app.multivende.com/api/m/{merchant_id}/{c}-connections"
+for id in result:
+    url = f"https://app.multivende.com/api/checkouts/{id}"
     headers = {
             'Authorization': f'Bearer {token}'
         }
     response = requests.request("GET", url, headers=headers)
     try:
         response = response.json()
-    except:
-        logger.warning('Advertencia: ', response.text)
-    if len(response['entries']) > 0:
-        conn_id.append(response['entries'][0]['_id'])
-
-# Get deliveries data
-logger.info('Retrieving delivery data')
-raw = []
-for con_id in conn_id:
-    p = 1
-    url = f"https://app.multivende.com/api/m/{merchant_id}/delivery-orders/documents/p/{p}?_delivery_statuses=completed&_delivery_statuses=pending&_shipping_label_print_statuses=not_printed&_shipping_label_status=ready&include_only_delivery_order_with_traking_number=true&_marketplace_connection_id={con_id}&_updated_at_from={last_date.isoformat('T', 'seconds')[:-6]}&_updated_at_to={datetime.now(timezone.utc).isoformat('T', 'seconds')[:-6]}"
-    headers = {
-            'Authorization': f'Bearer {token}'
-        }
-    response = requests.request("GET", url, headers=headers).json()
-    # If there are not entries, go for next connection
-    if response['pagination']['total_items'] == 0:
+    except Exception as e:
+        print(f'Error {e}: {response.text}')
+    
+    if response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['trackingNumber'] is None and response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['DeliveryOrderLinks'][0]['externalId'] is None:
         continue
-    # Save raw data
-    [raw.append(entry) for entry in response['entries']]
-    # If more than one page, iterate over the others
-    if response['pagination']['total_pages'] > 1:
-        for p in range(1, response['pagination']['total_pages']):
-            url = f"https://app.multivende.com/api/m/{merchant_id}/delivery-orders/documents/p/{p+1}?_delivery_statuses=completed&_delivery_statuses=pending&_shipping_label_print_statuses=not_printed&_shipping_label_status=ready&include_only_delivery_order_with_traking_number=true&_marketplace_connection_id={con_id}&_updated_at_from={last_date.isoformat('T', 'seconds')[:-6]}&_updated_at_to={datetime.now(timezone.utc).isoformat('T', 'seconds')[:-6]}"
-            headers = {
-                    'Authorization': f'Bearer {token}'
-                }
-            response2 =  requests.request("GET", url, headers=headers).json()
-            [raw.append(entry) for entry in response2['entries']]
 
-# Process data
-data = []
-for r in raw:
     tmp = {}
-    tmp['n venta'] = r['DeliveryOrderInCheckouts'][0]['Checkout']['CheckoutLinks'][0]['externalId']
-    tmp['fecha promesa'] = r['promisedDeliveryDate']
-    tmp['direccion'] = r['ShippingAddress']['address_1']
-    tmp['codigo'] = r['DeliveryOrderInCheckouts'][0]['Checkout']['code']
-    tmp['courier'] = r['courierName']
-    tmp['fecha despacho'] = r['handlingDateLimit']
-    tmp['delivery status'] = r['deliveryStatus']
-    n_seguimiento = r['trackingNumber'] 
+    tmp['n venta'] = response["CheckoutLink"]["externalOrderNumber"] 
+    tmp['fecha promesa'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['promisedDeliveryDate']
+    tmp['direccion'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['deliveryAddress']
+    tmp['codigo'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['code']
+    tmp['courier'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['courierName']
+    tmp['fecha despacho'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['handlingDateLimit']
+    tmp['delivery status'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['deliveryStatus']
+    n_seguimiento = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['trackingNumber'] 
+    if response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['trackingNumber'] is None:
+        n_seguimiento = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['DeliveryOrderLinks'][0]['externalId']
     if len(n_seguimiento) == 21:
         tmp['N seguimiento'] = n_seguimiento[3:-7]
     else:
         tmp['N seguimiento'] = n_seguimiento
-    tmp['status etiqueta'] = r['shippingLabelStatus']
-    tmp['estado impresion etiqueta'] = r['shippingLabelPrintStatus']
-    tmp['id venta'] =  r['DeliveryOrderInCheckouts'][0]['Checkout']['_id']
-    tmp['codigo venta'] = r['DeliveryOrderInCheckouts'][0]['Checkout']['code']
+    tmp['status etiqueta'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['shippingLabelStatus']
+    tmp['estado impresion etiqueta'] = response['DeliveryOrderInCheckouts'][0]['DeliveryOrder']['shippingLabelPrintStatus']
+    tmp['id venta'] = response['_id']
+    tmp['codigo venta'] = response['code']
     data.append(tmp)
 
 # Create dataframe and adjust formats
@@ -132,9 +107,7 @@ df = df.drop_duplicates()
 df = df[df["n venta"].notna()]
 # Fill empty couriers
 df['courier'].fillna('Empty', inplace=True)
-# Only store the items with N seguimiento and fecha despacho
-df = df[df["N seguimiento"].notna()]
-df = df[df["fecha despacho"].notna()]
+df['fecha despacho'].fillna(pd.to_datetime(datetime.now(timezone.utc)).tz_convert(None), inplace=True)
 
 # Check the data and load to database
 logger.info('Cargando a la base de datos')

@@ -44,14 +44,14 @@ class deliverys(Base):
     n_seguimiento = Column(String(24), nullable=False)
     codigo = Column(String(15), nullable=False)
     codigo_venta = Column(String(15), nullable=False)
-    courier = Column(String(24), nullable=False)
+    courier = Column(String(64), nullable=False)
     delivery_status = Column(String(9), nullable=False)
     direccion = Column(String(80))
     impresion_etiqueta = Column(String(11), nullable=False)
-    fecha_despacho = Column(DateTime, nullable=False)
+    fecha_despacho = Column(DateTime)
     fecha_promesa = Column(DateTime)
     id_venta = Column(String(36), nullable=False)
-    status_etiqueta = Column(String(5), nullable=False)
+    status_etiqueta = Column(String(12))
     n_venta = Column(String(24))
 
 class ids(Base):
